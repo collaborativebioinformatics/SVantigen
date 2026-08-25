@@ -8,3 +8,15 @@ But small variants aren't the only variants that generate neoantigens. We know S
 are often protein modifiers. If we can expand neoantigen candidate prediction to SV space, we will serve more cancer patients, especially since SV drivers and SSV drivers are often mutually exclusive in many cancer types.
 
 ![SV antigen detection by a bunch of pipelines](https://github.com/collaborativebioinformatics/SVantigen/blob/main/images/SV_neoantigen_detection.drawio.png)
+
+
+## Goals
+
+
+## Approach
+
+## Quickstart
+
+## License
+
+## Contributing
