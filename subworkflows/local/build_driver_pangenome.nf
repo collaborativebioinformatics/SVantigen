@@ -11,8 +11,10 @@ include { VG_AUTOINDEX                } from '../../modules/local/vg/autoindex.n
 
 workflow BUILD_DRIVER_PANGENOME {
 
-    // take:
-    // // ch_input   // e.g. input channel
+    take:
+    reference_fasta
+    driver_sv_vcf
+    small_variant_vcf
 
     // main:
     // // TODO: implement logic
