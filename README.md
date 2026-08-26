@@ -16,12 +16,14 @@ are often protein modifiers. If we can expand neoantigen candidate prediction to
 
 ### Papers
 https://www.nist.gov/programs-projects/cancer-genome-bottle
+
 https://www.nature.com/articles/s41597-025-05438-2
+
 https://www.biorxiv.org/content/10.64898/2026.05.01.722316v2
 
 ### Datasets
 
-https://42basepairs.com/browse/web/giab/data_somatic/HG008?file=README_HG008.md&preview=contents
+https://42basepairs.com/browse/web/giab/data_somatic/HG008
 
 ```
 HG008
@@ -43,11 +45,15 @@ HG008 normal pancreatic tissue
 ```
 
 Benchmarks:
+
 https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/data_somatic/HG008/Liss_lab/analysis/NIST_HG008-T_somatic-stvar-CNV_DraftBenchmark_V0.5-20260318/
 
 Recurrent driver SVs / druggable mutations:
+
 https://mitelmandatabase.isb-cgc.org/
+
 https://cancer.sanger.ac.uk/cosmic/download/cosmic
+
 https://www.oncokb.org/
 
 ## Quickstart
