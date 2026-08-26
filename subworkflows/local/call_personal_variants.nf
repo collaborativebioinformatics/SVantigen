@@ -5,6 +5,12 @@
  * Assigned : to be assigned
  */
 
+include { SAMTOOLS_BAM2FASTQ } from '../../modules/local/samtools/bam2fastq.nf'   
+include { MINIMAP2_ALIGN     } from '../../modules/local/minimap2/align.nf' 
+include { DEEPSOMATIC_CALL   } from '../../modules/local/deepsomatic/call.nf'
+include { SNIFFLES2_CALL     } from '../../modules/local/sniffles2/call.nf'
+
+
 workflow CALL_PERSONAL_VARIANTS {
 
     // take:
