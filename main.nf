@@ -14,9 +14,9 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------
 // Subworkflow includes
 // ----------------------------------------------------------------------------
-// include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
-// include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
-// include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
+include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
+include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
+include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
 
 workflow {
 
