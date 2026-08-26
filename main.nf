@@ -14,8 +14,8 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------
 // Subworkflow includes
 // ----------------------------------------------------------------------------
-include { INPUT_CHECK } from './subworkflows/local/input_check'
-// include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
+include { INPUT_CHECK          } from './subworkflows/local/input_check'
+include { BUILD_DRIVER_PANGENOME } from './subworkflows/local/build_driver_pangenome'
 // include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
 // include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
 
@@ -39,5 +39,12 @@ workflow {
     // ch_short_normal = INPUT_CHECK.out.short_normal
     // ch_long_tumor   = INPUT_CHECK.out.long_tumor
     // ch_long_normal  = INPUT_CHECK.out.long_normal
+
+    // ------------------------------------------------------------------------
+    // Variation graph construction (BUILD_DRIVER_PANGENOME).
+    // Reads reference + variant inputs from params and publishes the GFA graph,
+    // the vg GBZ graph, and the giraffe index set to params.outdir/pangenome.
+    // ------------------------------------------------------------------------
+    BUILD_DRIVER_PANGENOME()
 
 }
