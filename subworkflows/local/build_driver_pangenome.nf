@@ -16,8 +16,21 @@ workflow BUILD_DRIVER_PANGENOME {
     driver_sv_vcf
     small_variant_vcf
 
-    // main:
-    // // TODO: implement logic
+    main:
+
+    VALIDATE_NORMALIZE_VARIANTS(
+        driver_sv_vcf,
+        small_variant_vcf
+    )
+
+    SVAHA3_BUILD_GRAPH(
+        reference_fasta,
+        VALIDATE_NORMALIZE_VARIANTS.out
+    )
+
+    VG_AUTOINDEX(
+        SVAHA3_BUILD_GRAPH.out
+    )
 
     // emit:
     // // ch_output  // e.g. output channel
