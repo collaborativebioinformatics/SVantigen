@@ -14,9 +14,11 @@ process VG_AUTOINDEX {
         ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
         : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
 
-    // input:
+    input:
+    path pangenome_gfa
 
-    // output:
+    output:
+    path "giraffe_indexes/*", emit: giraffe_indexes
 
     script:
     """
