@@ -18,17 +18,21 @@ workflow BUILD_DRIVER_PANGENOME {
 
     main:
 
+    // Validate and normalize the known driver SV and small-variant VCFs
     VALIDATE_NORMALIZE_VARIANTS(
         driver_sv_vcf,
         small_variant_vcf
     )
 
+
+    // Build the cancer-driver pangenome graph from hg38 and the normalized variants
     SVAHA3_BUILD_GRAPH(
         reference_fasta,
         VALIDATE_NORMALIZE_VARIANTS.out.driver_svs,
         VALIDATE_NORMALIZE_VARIANTS.out.small_variants
     )
 
+    // Build the vg Giraffe-compatible indexes from the pangenome graph
     VG_AUTOINDEX(
         SVAHA3_BUILD_GRAPH.out.pangenome_gfa
     )
