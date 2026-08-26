@@ -1,0 +1,5 @@
+﻿pair_id,sample,status,data_type,bam
+pair_01,sample01,tumor,short,tests/data/sample01.bam
+pair_01,sample02,normal,short,tests/data/sample02.bam
+pair_02,sample03,tumor,long,tests/data/sample03.bam
+pair_02,sample04,normal,long,tests/data/sample04.bam
