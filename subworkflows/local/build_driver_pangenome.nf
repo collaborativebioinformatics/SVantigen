@@ -1,43 +1,49 @@
 /*
  * SUBWORKFLOW: BUILD_DRIVER_PANGENOME
- * Purpose  : Creates a cancer driver pangenome to be used for calling recurrent variants
- * Status   : placeholder, not yet implemented
- * Assigned : to be assigned
+ * Purpose  : Variation graph construction.
+ *           Builds a pangenome GFA from a linear reference and a manifest of
+ *           known variants, then runs vg autoindex to produce a vg graph (GBZ)
+ *           and the giraffe index set.
+ *
+ * Processes: SVAHA3_BUILD_GRAPH, VG_AUTOINDEX
+ *
+ * Inputs (via params):
+ *   - params.reference        : FASTA reference (required)
+ *   - params.reference_index  : reference .fai (optional; defaults to <reference>.fai)
+ *   - params.variants         : manifest TSV (type<TAB>file, with header)
+ *
+ * Outputs:
+ *   - gfa       : pangenome graph in GFA format (from svaha3)
+ *   - gbz       : vg graph in GBZ format (from vg autoindex)
+ *   - dist/min/zipcodes : giraffe index set (from vg autoindex)
+ * Status   : implemented
  */
 
-include { VALIDATE_NORMALIZE_VARIANTS } from '../../modules/local/validate_normalize_variants.nf'   
-include { SVAHA3_BUILD_GRAPH          } from '../../modules/local/svaha3/build_graph.nf' 
-include { VG_AUTOINDEX                } from '../../modules/local/vg/autoindex.nf'
+include { SVAHA3_BUILD_GRAPH } from '../../modules/local/svaha3/build_graph.nf'
+include { VG_AUTOINDEX       } from '../../modules/local/vg/autoindex.nf'
 
 workflow BUILD_DRIVER_PANGENOME {
 
-    take:
-    reference_fasta
-    driver_sv_vcf
-    small_variant_vcf
+    // take:
+    // // none - reads directly from params
 
-    main:
+    if (!params.reference) error "Missing required param --reference (FASTA reference)."
+    if (!params.variants)  error "Missing required param --variants (manifest TSV)."
 
-    // Validate and normalize the known driver SV and small-variant VCFs
-    VALIDATE_NORMALIZE_VARIANTS(
-        driver_sv_vcf,
-        small_variant_vcf
-    )
+    def meta       = [id: 'driver_pangenome']
+    def reference  = file(params.reference)
+    def refIdx     = file(params.reference_index ?: "${params.reference}.fai")
+    def manifest   = file(params.variants)
 
+    // main:
+    SVAHA3_BUILD_GRAPH(Channel.value([meta, reference, refIdx, manifest]))
+    VG_AUTOINDEX(SVAHA3_BUILD_GRAPH.out.gfa)
 
-    // Build the cancer-driver pangenome graph from hg38 and the normalized variants
-    SVAHA3_BUILD_GRAPH(
-        reference_fasta,
-        VALIDATE_NORMALIZE_VARIANTS.out.driver_svs,
-        VALIDATE_NORMALIZE_VARIANTS.out.small_variants
-    )
-
-    // Build the vg Giraffe-compatible indexes from the pangenome graph
-    VG_AUTOINDEX(
-        SVAHA3_BUILD_GRAPH.out.pangenome_gfa
-    )
-
+    // emit:
     emit:
-    pangenome_gfa = SVAHA3_BUILD_GRAPH.out.pangenome_gfa
-    giraffe_indexes = VG_AUTOINDEX.out.giraffe_indexes
+    gfa      = SVAHA3_BUILD_GRAPH.out.gfa
+    gbz      = VG_AUTOINDEX.out.gbz
+    dist     = VG_AUTOINDEX.out.dist
+    min      = VG_AUTOINDEX.out.min
+    zipcodes = VG_AUTOINDEX.out.zipcodes
 }

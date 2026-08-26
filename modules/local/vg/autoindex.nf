@@ -1,27 +1,40 @@
 /*
  * MODULE: VG_AUTOINDEX
- * Purpose : Build the giraffe-compatible index set (GBZ, distance, minimizer,
- *           etc.) from the cancer SV pangenome so it can be used for
- *           short-read alignment in the CALL_RECURRENT_VARIANTS subworkflow.
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Purpose : Build the giraffe-compatible index set from a GFA graph:
+ *             - GBZ graph (vg's binary pangenome graph format)
+ *             - distance index (.dist)
+ *             - minimizer index (.shortread.withzip.min)
+ *             - zipcodes (.shortread.zipcodes)
+ * Status  : implemented
+ *
+ * Container: vg v1.76.1
+ * Docs: https://docs.nvidia.com/clara/parabricks/tool-reference/tools/giraffe
  */
 
 process VG_AUTOINDEX {
 
-    // container "quay.io/vgteam/vg:v1.76.1"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
         ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
         : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
 
+    publishDir "${params.outdir}/pangenome", mode: 'copy', enabled: params.outdir
+
     input:
-    path pangenome_gfa
+    tuple val(meta), path(gfa)
 
     output:
-    path "giraffe_indexes/*", emit: giraffe_indexes
+    tuple val(meta), path("${meta.id}.gbz"),                    emit: gbz
+    tuple val(meta), path("${meta.id}.dist"),                   emit: dist
+    tuple val(meta), path("${meta.id}.shortread.withzip.min"),  emit: min
+    tuple val(meta), path("${meta.id}.shortread.zipcodes"),     emit: zipcodes
 
     script:
+    def args = task.ext.args ?: ''
     """
-    # TODO: implement indexing
+    vg autoindex \\
+        -p ${meta.id} \\
+        -g ${gfa} \\
+        -w giraffe \\
+        ${args}
     """
 }
