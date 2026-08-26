@@ -14,6 +14,7 @@ nextflow.enable.dsl = 2
 // ----------------------------------------------------------------------------
 // Subworkflow includes
 // ----------------------------------------------------------------------------
+include { INPUT_CHECK } from './subworkflows/local/input_check'
 // include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
 // include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
 // include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
@@ -28,10 +29,15 @@ workflow {
     """.stripIndent()
 
     // ------------------------------------------------------------------------
-    // Wire up subworkflows here as they're implemented, e.g.:
-    //
-    // input_ch = Channel.fromPath(params.input)
-    // BUILD_DRIVER_PANGENOME( input_ch )
+    // Parse the samplesheet into typed tumor/normal channels (issue #19)
     // ------------------------------------------------------------------------
+    ch_input = channel.fromPath(params.input)
+    INPUT_CHECK(ch_input)
+
+    // Future issues will wire these channels to analysis subworkflows:
+    // ch_short_tumor  = INPUT_CHECK.out.short_tumor
+    // ch_short_normal = INPUT_CHECK.out.short_normal
+    // ch_long_tumor   = INPUT_CHECK.out.long_tumor
+    // ch_long_normal  = INPUT_CHECK.out.long_normal
 
 }
