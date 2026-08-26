@@ -10,7 +10,10 @@ include { VG_GIRAFFE              } from '../../modules/local/vg/giraffe.nf'
 include { VG_PACK                 } from '../../modules/local/vg/pack.nf'
 include { VG_CALL                 } from '../../modules/local/vg/call.nf'
 include { FILTER_SOMATIC_VARIANTS } from '../../modules/local/filter_somatic_variants.nf'   
-include { COLLECT_QC_REPORT       } from '../../modules/local/collect_qc_report.nf'   
+include { COLLECT_QC_REPORT       } from '../../modules/local/collect_qc_report.nf'
+
+// FOR GPU ACCELERATION
+include { PARABRICKS_VG_GIRAFFE   } from '../../modules/local/parabricks/vg/giraffe.nf' 
 
 workflow CALL_RECURRENT_VARIANTS {
 
