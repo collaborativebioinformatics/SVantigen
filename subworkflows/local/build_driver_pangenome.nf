@@ -25,13 +25,15 @@ workflow BUILD_DRIVER_PANGENOME {
 
     SVAHA3_BUILD_GRAPH(
         reference_fasta,
-        VALIDATE_NORMALIZE_VARIANTS.out
+        VALIDATE_NORMALIZE_VARIANTS.out.driver_svs,
+        VALIDATE_NORMALIZE_VARIANTS.out.small_variants
     )
 
     VG_AUTOINDEX(
-        SVAHA3_BUILD_GRAPH.out
+        SVAHA3_BUILD_GRAPH.out.pangenome_gfa
     )
 
-    // emit:
-    // // ch_output  // e.g. output channel
+    emit:
+    pangenome_gfa = SVAHA3_BUILD_GRAPH.out.pangenome_gfa
+    giraffe_indexes = VG_AUTOINDEX.out.giraffe_indexes
 }

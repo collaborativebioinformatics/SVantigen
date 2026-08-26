@@ -11,9 +11,13 @@ process SVAHA3_BUILD_GRAPH {
 
     container // create container from Svaha repository (https://github.com/edawson/svaha)
 
-    // input:
+    input:
+    path reference_fasta
+    path normalized_driver_svs
+    path normalized_small_variants
 
-    // output:
+    output:
+    path "pangenome.gfa", emit: pangenome_gfa
 
     script:
     """
