@@ -1,79 +1,20 @@
-<<<<<<< HEAD
-/*
- * MODULE: SVAHA3_BUILD_GRAPH
- * Purpose : Build the cancer driver + recurrent neoantigen pangenome graph
- *           (GFA format) from the normalized driver SVs and small somatic
- *           variants, relative to a linear reference.
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
- */
-
-process SVAHA3_BUILD_GRAPH {
-    tag "$meta.id"
-    label 'process_medium'
-
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
-        : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
-
-    input:
-    tuple val(meta), path(vcf)
-    tuple val(meta_fasta), path(fasta)
-
-    output:
-    tuple val(meta), path("*.gfa"), emit: gfa
-    path "versions.yml"           , emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
-
-    script:
-    def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    """
-    vg construct \\
-        -r ${fasta} \\
-        -v ${vcf} \\
-        -t ${task.cpus} \\
-        ${args} > ${prefix}.vg
-
-    vg view ${prefix}.vg > ${prefix}.gfa
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        vg: \$(vg version 2>&1 | head -n 1 | sed 's/v//')
-    END_VERSIONS
-    """
-
-    stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    """
-    touch ${prefix}.gfa
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        vg: \$(vg version 2>&1 | head -n 1 | sed 's/v//')
-    END_VERSIONS
-    """
-}
-=======
 /*
  * MODULE: SVAHA3_BUILD_GRAPH
  * Purpose : Build a pangenome variation graph (GFA) from a linear reference and
- *           a set of known variants, relative to a linear reference.
+ *           a manifest of known variants.
  *
  *           Variant files are declared in a single manifest TSV:
  *               <type>\t<file>
  *           where type ∈ {small_vcf, small_maf, sv_tsv, sv_vcf, sv_bedpe}
  *           and <file> is a path resolvable from the work directory.
- *           A header line (anything) is skipped.
+ *           A header line is skipped.
  *
- * Status  : implemented
- *
- * Container: build from https://github.com/edawson/svaha (see svaha/Dockerfile)
+ * Status  : implemented scaffold
  */
 
 process SVAHA3_BUILD_GRAPH {
+     tag "$meta.id"
+     label 'process_medium'
 
     // Build from https://github.com/edawson/svaha (see svaha/Dockerfile)
     container "edawson/svaha:latest"
@@ -85,6 +26,10 @@ process SVAHA3_BUILD_GRAPH {
 
     output:
     tuple val(meta), path("${meta.id}.gfa"), emit: gfa
+    path "versions.yml"                      , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
@@ -107,6 +52,21 @@ process SVAHA3_BUILD_GRAPH {
         \$svaha_args \\
         --output-graph ${meta.id}.gfa \\
         ${args}
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        svaha3: "\$(svaha3 --version 2>&1 || echo 'unknown')"
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}.gfa
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        svaha3: "0.0.1"
+    END_VERSIONS
     """
 }
->>>>>>> origin/main
