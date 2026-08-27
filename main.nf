@@ -13,6 +13,7 @@
 // ----------------------------------------------------------------------------
 include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
 include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
+include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
 
 workflow {
 
@@ -37,5 +38,8 @@ workflow {
 
         // 2. Align reads to pangenome & call recurrent variants (GPU / CPU Giraffe)
         CALL_RECURRENT_VARIANTS( ch_reads, BUILD_DRIVER_PANGENOME.out.index )
+
+        // 3. Align reads to reference & call personal variants (DeepSomatic & Sniffles2)
+        CALL_PERSONAL_VARIANTS( ch_reads, ch_fasta )
     }
 }

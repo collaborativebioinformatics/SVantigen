@@ -2,8 +2,7 @@
  * MODULE: VALIDATE_NORMALIZE_VARIANTS
  * Purpose : Validate and normalize known driver SVs + known small somatic
  *           variants
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Status  : complete scaffold
  */
 
 process VALIDATE_NORMALIZE_VARIANTS {

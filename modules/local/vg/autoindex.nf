@@ -3,8 +3,7 @@
  * Purpose : Build the giraffe-compatible index set (GBZ, distance, minimizer,
  *           etc.) from the cancer SV pangenome so it can be used for
  *           short-read alignment in the CALL_RECURRENT_VARIANTS subworkflow.
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Status  : complete scaffold
  */
 
 process VG_AUTOINDEX {
@@ -19,8 +18,8 @@ process VG_AUTOINDEX {
     tuple val(meta), path(gfa)
 
     output:
-    tuple val(meta), path("*.giraffe.gbz"), path("*.dist"), path("*.min"), emit: index
-    path "versions.yml"                                                   , emit: versions
+    tuple val(meta), path("*.gbz"), path("*.dist"), path("*.min"), emit: index
+    path "versions.yml"                                           , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -45,7 +44,7 @@ process VG_AUTOINDEX {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.giraffe.gbz
+    touch ${prefix}.gbz
     touch ${prefix}.dist
     touch ${prefix}.min
 
