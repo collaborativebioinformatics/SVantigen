@@ -5,33 +5,37 @@
     SVANTIGEN PIPELINE SCAFFOLD
 ========================================================================================
     Minimal Nextflow DSL2 scaffold.
-    Add real logic under modules/local/ and subworkflows/local/ as we build things out.
 ========================================================================================
 */
-
-nextflow.enable.dsl = 2
 
 // ----------------------------------------------------------------------------
 // Subworkflow includes
 // ----------------------------------------------------------------------------
-// include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
-// include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
-// include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
+include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
+include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
 
 workflow {
 
     log.info """
-        SVantigen Pipeline Scaffold
-        ===========================
-        input  : ${params.input}
-        outdir : ${params.outdir}
+        SVantigen Pipeline
+        ==================
+        input      : ${params.input}
+        outdir     : ${params.outdir}
+        enable_gpu : ${params.enable_gpu}
     """.stripIndent()
 
     // ------------------------------------------------------------------------
-    // Wire up subworkflows here as they're implemented, e.g.:
-    //
-    // input_ch = Channel.fromPath(params.input)
-    // BUILD_DRIVER_PANGENOME( input_ch )
+    // Channel initialization
     // ------------------------------------------------------------------------
+    if (params.input) {
+        ch_vcf   = Channel.fromPath(params.input).map { file -> [ [id: file.baseName], file ] }
+        ch_fasta = Channel.fromPath(params.fasta ?: 'assets/test/reference.fasta').map { file -> [ [id: file.baseName], file ] }
+        ch_reads = Channel.fromPath(params.reads ?: 'assets/test/tumor_short.fastq.gz').map { file -> [ [id: file.baseName], file ] }
 
+        // 1. Build Cancer Driver Pangenome Index (GFA -> Giraffe GBZ, DIST, MIN)
+        BUILD_DRIVER_PANGENOME( ch_vcf, ch_fasta )
+
+        // 2. Align reads to pangenome & call recurrent variants (GPU / CPU Giraffe)
+        CALL_RECURRENT_VARIANTS( ch_reads, BUILD_DRIVER_PANGENOME.out.index )
+    }
 }

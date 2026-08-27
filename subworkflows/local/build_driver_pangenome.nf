@@ -11,12 +11,27 @@ include { VG_AUTOINDEX                } from '../../modules/local/vg/autoindex.n
 
 workflow BUILD_DRIVER_PANGENOME {
 
-    // take:
-    // // ch_input   // e.g. input channel
+    take:
+    ch_vcf    // channel: [ val(meta), path(vcf) ]
+    ch_fasta  // channel: [ val(meta_fasta), path(fasta) ]
 
-    // main:
-    // // TODO: implement logic
+    main:
+    ch_versions = Channel.empty()
 
-    // emit:
-    // // ch_output  // e.g. output channel
+    // 1. Validate and normalize driver variants VCF
+    VALIDATE_NORMALIZE_VARIANTS ( ch_vcf )
+    ch_versions = ch_versions.mix(VALIDATE_NORMALIZE_VARIANTS.out.versions)
+
+    // 2. Construct Cancer SV Pangenome (GFA)
+    SVAHA3_BUILD_GRAPH ( VALIDATE_NORMALIZE_VARIANTS.out.vcf, ch_fasta )
+    ch_versions = ch_versions.mix(SVAHA3_BUILD_GRAPH.out.versions)
+
+    // 3. Index the pangenome for Giraffe (GBZ, DIST, MIN)
+    VG_AUTOINDEX ( SVAHA3_BUILD_GRAPH.out.gfa )
+    ch_versions = ch_versions.mix(VG_AUTOINDEX.out.versions)
+
+    emit:
+    gfa      = SVAHA3_BUILD_GRAPH.out.gfa  // channel: [ val(meta), path(gfa) ]
+    index    = VG_AUTOINDEX.out.index      // channel: [ val(meta), path(gbz), path(dist), path(min) ]
+    versions = ch_versions                 // channel: [ path(versions.yml) ]
 }
