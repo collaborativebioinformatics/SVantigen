@@ -11,6 +11,7 @@
 // ----------------------------------------------------------------------------
 // Subworkflow includes
 // ----------------------------------------------------------------------------
+include { INPUT_CHECK             } from './subworkflows/local/input_check'
 include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
 include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
 include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
@@ -24,6 +25,18 @@ workflow {
         outdir     : ${params.outdir}
         enable_gpu : ${params.enable_gpu}
     """.stripIndent()
+
+    // ------------------------------------------------------------------------
+    // Parse the samplesheet into typed tumor/normal channels (issue #19)
+    // ------------------------------------------------------------------------
+    ch_samplesheet = channel.fromPath(params.input)
+    INPUT_CHECK(ch_samplesheet)
+
+    // Future issues will wire these channels to analysis subworkflows:
+    // ch_short_tumor  = INPUT_CHECK.out.short_tumor
+    // ch_short_normal = INPUT_CHECK.out.short_normal
+    // ch_long_tumor   = INPUT_CHECK.out.long_tumor
+    // ch_long_normal  = INPUT_CHECK.out.long_normal
 
     // ------------------------------------------------------------------------
     // Channel initialization
@@ -42,4 +55,5 @@ workflow {
         // 3. Align reads to reference & call personal variants (DeepSomatic & Sniffles2)
         CALL_PERSONAL_VARIANTS( ch_reads, ch_fasta )
     }
+
 }

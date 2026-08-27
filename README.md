@@ -86,4 +86,8 @@ See [docs/usage.md](docs/usage.md) for the full parameter reference and
 
 ## License
 
+## Contributors
+
+- [@martings](https://github.com/martings)
+
 ## Contributing
