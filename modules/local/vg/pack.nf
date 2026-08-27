@@ -6,18 +6,50 @@
  */
 
 process VG_PACK {
+    tag "$meta.id"
+    label 'process_high'
 
-    // container "quay.io/vgteam/vg:v1.76.1"
     container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
         ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
         : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
 
-    // input:
+    input:
+    tuple val(meta), path(aln)
+    tuple val(meta_idx), path(gbz), path(dist), path(min)
 
-    // output:
+    output:
+    tuple val(meta), path("*.pack"), emit: pack
+    path "versions.yml"            , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    def input_flag = aln.name.endsWith('.gam') ? "-g ${aln}" : "-b ${aln}"
     """
-    # TODO: implement indexing
+    vg pack \\
+        -x ${gbz} \\
+        ${input_flag} \\
+        -t ${task.cpus} \\
+        -o ${prefix}.pack \\
+        ${args}
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        vg: \$(vg version 2>&1 | head -n 1 | sed 's/v//')
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}.pack
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        vg: \$(vg version 2>&1 | head -n 1 | sed 's/v//')
+    END_VERSIONS
     """
 }
