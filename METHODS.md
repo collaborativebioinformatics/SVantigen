@@ -42,7 +42,7 @@ parallel, and runs each step inside its own container so the versions are pinned
 and the results reproduce on someone else's machine.
 
 **Input** is a `samplesheet.csv` listing matched tumor/normal pairs, whether each
-sample is short-read or long-read, and where its BAM file lives. **Output** is a
+sample is short-read or long-read, and where its `.fastq` file lives. **Output** is a
 set of filtered somatic variant calls plus a QC report, written to `--outdir`.
 
 Between input and output the work is split into three subworkflows:
