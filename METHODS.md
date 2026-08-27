@@ -1,6 +1,6 @@
 # METHODS
 
-## The goal, in one sentence
+## The Goal
 
 Personalized cancer vaccines work by finding the mutations unique to a patient's
 tumor and training the immune system to recognize them — but today that search
