@@ -23,15 +23,15 @@ But small variants aren't the only variants that generate neoantigens. We know S
 
 ## Goals
 
-1. **Broaden neoantigen discovery beyond SNVs/indels** — build a Nextflow pipeline that detects somatic structural variants (SVs) and uses them as vaccine and drug targets alongside small mutations.
+1. **Broaden neoantigen discovery beyond SNVs/indels**: build a Nextflow pipeline that detects somatic structural variants (SVs) and uses them as vaccine and drug targets alongside small mutations.
 
-2. **Catch both personal and recurrent driver SVs** — run two complementary detection strategies in parallel: de novo personal variant calling against a linear reference (patient-unique mutations) and pangenome-based calling against a catalogue of known cancer-driver rearrangements (recurrent, potentially druggable).
+2. **Catch both personal and recurrent driver SVs**: run two complementary detection strategies in parallel: de novo personal variant calling against a linear reference (patient-unique mutations) and pangenome-based calling against a catalogue of known cancer-driver rearrangements (recurrent, potentially druggable).
 
-3. **Remain accessible and reproducible** — all execution environments are containerised (Singularity / Docker); results reproduce on any Linux HPC or cloud cluster via a single `nextflow run` command.
+3. **Remain accessible and reproducible**: all execution environments are containerised (Singularity / Docker); results reproduce on any Linux HPC or cloud cluster via a single `nextflow run` command.
 
-4. **Enable GPU acceleration transparently** — NVIDIA Clara Parabricks modules for Minimap2 and DeepSomatic swap in automatically when `--enable_gpu` is set, without changing the workflow graph.
+4. **Enable GPU acceleration transparently**: NVIDIA Clara Parabricks modules for Minimap2 and DeepSomatic swap in automatically when `--enable_gpu` is set, without changing the workflow graph.
 
-5. **Benchmark on real ground truth** — develop and validate against the GIAB HG008 pancreatic tumour/normal benchmark, which has published SV and small-variant truth sets, so sensitivity and precision can be measured objectively.
+5. **Benchmark on real ground truth**: develop and validate against the GIAB HG008 pancreatic tumour/normal benchmark, which has published SV and small-variant truth sets, so sensitivity and precision can be measured objectively.
 
 ---
 
