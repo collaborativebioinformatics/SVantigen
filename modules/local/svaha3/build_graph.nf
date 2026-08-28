@@ -1,20 +1,14 @@
 /*
  * MODULE: SVAHA3_BUILD_GRAPH
- * Purpose : Build a pangenome variation graph (GFA) from a linear reference and
- *           a manifest of known variants using Svaha.
- *
- *           Variant files are declared in a single manifest TSV:
- *               <type>\t<file>
- *           where type ∈ {small_vcf, small_maf, sv_tsv, sv_vcf, sv_bedpe}
- *           and <file> is a path resolvable from the work directory.
- *           A header line is skipped.
+ * Purpose : Build a pangenome variation graph (GFA) directly from a linear reference
+ *           and input variants (VCF) using Svaha.
  * Status  : complete implementation
  *
  * Container : edawson/svaha:latest
  *
  * Notes:
- *  - Executes graph construction with reference FASTA and input variants to create .vg graph
- *  - Converts graph to GFA format for downstream indexing
+ *  - Uncompresses gzipped VCF input if necessary for svaha VCF parser compatibility
+ *  - Converts GFA 2.0 (S/E/O lines) emitted by svaha to GFA 1.0 (S/L/P lines) for vg autoindex compatibility
  */
 
 process SVAHA3_BUILD_GRAPH {
@@ -40,17 +34,39 @@ process SVAHA3_BUILD_GRAPH {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    vg construct \\
-        -r ${fasta} \\
-        -v ${vcf} \\
-        -t ${task.cpus} \\
-        ${args} > ${prefix}.vg
+    VCF_FILE="${vcf}"
+    if [[ "${vcf}" == *.gz ]]; then
+        gzip -dc ${vcf} > input_uncompressed.vcf
+        VCF_FILE="input_uncompressed.vcf"
+    fi
 
-    vg view ${prefix}.vg > ${prefix}.gfa
+    svaha \\
+        -r ${fasta} \\
+        -v \${VCF_FILE} \\
+        ${args} | awk '
+        BEGIN { FS="\\t"; OFS="\\t" }
+        {
+            if (\$1 == "H") {
+                print "H\\tVN:Z:1.0"
+            } else if (\$1 == "S") {
+                print "S", \$2, \$4
+            } else if (\$1 == "E") {
+                n1 = substr(\$3, 1, length(\$3)-1)
+                o1 = substr(\$3, length(\$3), 1)
+                n2 = substr(\$4, 1, length(\$4)-1)
+                o2 = substr(\$4, length(\$4), 1)
+                print "L", n1, o1, n2, o2, "0M"
+            } else if (\$1 == "O") {
+                gsub(/ /, ",", \$3)
+                print "P", \$2, \$3, "*"
+            } else if (\$1 == "P" || \$1 == "L") {
+                print \$0
+            }
+        }' > ${prefix}.gfa
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        vg: \$(vg version 2>&1 | head -n 1 | sed 's/v//')
+        svaha: 1.0.0
     END_VERSIONS
     """
 
@@ -61,7 +77,7 @@ process SVAHA3_BUILD_GRAPH {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        vg: \$(vg version 2>&1 | head -n 1 | sed 's/v//')
+        svaha: 1.0.0
     END_VERSIONS
     """
 }
