@@ -3,3 +3,4 @@ work/
 results/
 /local/
 singularity_images/
+.DS_Store
