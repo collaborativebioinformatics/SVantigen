@@ -101,6 +101,19 @@ For detailed direct download links to GIAB HG008 benchmark callsets (SV/CNV and 
 
 ---
 
+## Current Status
+
+The following slides summarise what has been implemented as of the hackathon submission:
+
+![Pipeline Architecture Overview](images/Slide2.png)
+![Subworkflow 1: Build Driver Pangenome](images/Slide3.png)
+![Subworkflow 3: Call Recurrent Variants](images/Slide4.png)
+![Subworkflow 2: Call Personal Variants](images/Slide5.png)
+![Completed Steps and To-Dos](images/Slide6.png)
+![Future Directions](images/Slide7.png)
+
+---
+
 ## Quickstart
 
 The pipeline reads a CSV samplesheet of tumour/normal pairs and routes long reads to personal variant calling and short reads to recurrent driver calling.
@@ -273,9 +286,9 @@ SVantigen/
 | Name | GitHub |
 |---|---|
 | Martín E. García Solá | [@martings](https://github.com/martings) |
-| Muiz Mohamed | [@muizhamza](https://github.com/muizhamza) |
 | Eric T. Dawson | [@edawson](https://github.com/edawson) |
 | Ben Busby | [@DCGenomics](https://github.com/DCGenomics) |
+| Muiz Mohamed | [@muaiz](https://github.com/muaiz) |
 | Ayman Hussein | [@AymanHussein15](https://github.com/AymanHussein15) |
 | Joshua Law | [@JoshuaLZJ](https://github.com/JoshuaLZJ) |
 | Julian Chiu | [@jchchiu](https://github.com/jchchiu) |
