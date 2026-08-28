@@ -1,7 +1,13 @@
 /*
  * MODULE: FILTER_SOMATIC_VARIANTS
- * Purpose : filter somatic variants
- * Status  : complete scaffold
+ * Purpose : Filter called VCF records for PASSing somatic variants
+ * Status  : complete implementation
+ *
+ * Container : Galaxy / Biocontainers bcftools 1.20
+ *
+ * Notes:
+ *  - Filters VCF for FILTER=="PASS" or missing filter annotations
+ *  - Produces gzipped VCF and tabix index (.tbi)
  */
 
 process FILTER_SOMATIC_VARIANTS {

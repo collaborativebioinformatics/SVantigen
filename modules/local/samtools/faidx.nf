@@ -1,7 +1,13 @@
 /*
  * MODULE: SAMTOOLS_FAIDX
  * Purpose : Index FASTA reference sequence with samtools faidx
- * Status  : complete scaffold
+ * Status  : complete implementation
+ *
+ * Container : Wave / Biocontainers samtools
+ *
+ * Notes:
+ *  - Generates .fai index file for input reference FASTA
+ *  - Required downstream by variant callers such as DeepSomatic
  */
 
 process SAMTOOLS_FAIDX {

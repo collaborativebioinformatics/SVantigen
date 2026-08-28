@@ -1,8 +1,13 @@
 /*
  * MODULE: VALIDATE_NORMALIZE_VARIANTS
- * Purpose : Validate and normalize known driver SVs + known small somatic
- *           variants
- * Status  : complete scaffold
+ * Purpose : Validate and normalize known driver SVs and small somatic variant VCFs
+ * Status  : complete implementation
+ *
+ * Container : Galaxy / Biocontainers bcftools 1.20
+ *
+ * Notes:
+ *  - Runs bcftools norm -m -any to normalize multiallelic variants and left-align indels
+ *  - Indexes output VCF using tabix
  */
 
 process VALIDATE_NORMALIZE_VARIANTS {

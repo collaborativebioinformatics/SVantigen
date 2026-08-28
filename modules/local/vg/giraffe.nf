@@ -1,7 +1,13 @@
 /*
  * MODULE: VG_GIRAFFE
- * Purpose : align to pangenome
- * Status  : complete scaffold
+ * Purpose : Align short/long reads to pangenome graph using vg giraffe
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Aligns FASTQ reads using GBZ, DIST, and MIN pangenome index set
+ *  - Outputs graph alignment file in GAM format
  */
 
 process VG_GIRAFFE {

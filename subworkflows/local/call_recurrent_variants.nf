@@ -1,7 +1,24 @@
 /*
  * SUBWORKFLOW: CALL_RECURRENT_VARIANTS
- * Purpose  : Align reads to the created cancer driver pangenome and call variants
- * Status  : complete scaffold
+ * Purpose  : Align tumor reads to cancer driver pangenome graph and genotype recurrent variants
+ * Status   : complete implementation
+ *
+ * Processes: SAMTOOLS_BAM2FASTQ, VG_GIRAFFE / PARABRICKS_VG_GIRAFFE, VG_PACK, VG_CALL, FILTER_SOMATIC_VARIANTS, COLLECT_QC_REPORT
+ *
+ * Inputs:
+ *  - ch_reads         : [ val(meta), [ path(reads) ] ] - FASTQ or BAM tumor reads
+ *  - ch_giraffe_index : [ val(meta_idx), path(gbz), path(dist), path(min) ] - Giraffe pangenome index
+ *
+ * Outputs:
+ *  - aligned  : [ val(meta), path(gam) ] - Pangenome graph alignments
+ *  - vcf      : [ val(meta), path(vcf), path(tbi) ] - Filtered somatic variants
+ *  - qc       : [ val(meta), path(html) ] - QC report HTML
+ *  - versions : [ path(versions.yml) ] - Software versions
+ *
+ * Notes:
+ *  - Supports CPU (vg giraffe) or GPU (Parabricks Giraffe) read mapping
+ *  - Summarizes coverage with vg pack and calls genotypes with vg call
+ *  - Filters somatic variants and compiles bcftools QC report
  */
 
 include { SAMTOOLS_BAM2FASTQ      } from '../../modules/local/samtools/bam2fastq.nf'   
@@ -27,18 +44,18 @@ workflow CALL_RECURRENT_VARIANTS {
     ch_reads
         .branch { meta, reads ->
             def read_list = reads instanceof List ? reads : [reads]
-            def is_bam = read_list[0].name.endsWith('.bam')
-            bam: is_bam
-            fastq: !is_bam
+            def is_bam = read_list[0].name.endsWith('.bam')
+            bam: is_bam
+            fastq: !is_bam
         }
         .set { ch_input_reads }
 
     // Convert BAM to FASTQ if required
-    def ch_bams = ch_input_reads.bam.map { meta, reads ->
-        def read_list = reads instanceof List ? reads : [reads]
-        [ meta, read_list[0] ]
-    }
-    SAMTOOLS_BAM2FASTQ ( ch_bams )
+    def ch_bams = ch_input_reads.bam.map { meta, reads ->
+        def read_list = reads instanceof List ? reads : [reads]
+        [ meta, read_list[0] ]
+    }
+    SAMTOOLS_BAM2FASTQ ( ch_bams )
     ch_versions = ch_versions.mix(SAMTOOLS_BAM2FASTQ.out.versions)
 
     ch_fastqs = ch_input_reads.fastq.mix(SAMTOOLS_BAM2FASTQ.out.fastq)

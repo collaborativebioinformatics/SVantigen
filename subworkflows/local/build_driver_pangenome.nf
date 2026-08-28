@@ -1,7 +1,23 @@
 /*
  * SUBWORKFLOW: BUILD_DRIVER_PANGENOME
- * Purpose  : Creates a cancer driver pangenome to be used for calling recurrent variants
- * Status   : complete scaffold
+ * Purpose  : Construct and index a cancer driver + recurrent neoantigen pangenome graph
+ * Status   : complete implementation
+ *
+ * Processes: VALIDATE_NORMALIZE_VARIANTS, SVAHA3_BUILD_GRAPH, VG_AUTOINDEX
+ *
+ * Inputs:
+ *  - ch_vcf   : [ val(meta), path(vcf) ] - Input driver SV VCF file
+ *  - ch_fasta : [ val(meta_fasta), path(fasta) ] - Reference genome FASTA
+ *
+ * Outputs:
+ *  - gfa      : [ val(meta), path(gfa) ] - Pangenome graph in GFA format
+ *  - index    : [ val(meta), path(gbz), path(dist), path(min) ] - Giraffe index set
+ *  - versions : [ path(versions.yml) ] - Software version reporting
+ *
+ * Notes:
+ *  - Validates and normalizes driver SV VCF records with bcftools norm
+ *  - Builds pangenome graph via vg construct (svaha3)
+ *  - Indexes graph into GBZ, DIST, and MIN files using vg autoindex --workflow giraffe
  */
 
 include { VALIDATE_NORMALIZE_VARIANTS } from '../../modules/local/validate_normalize_variants.nf'   

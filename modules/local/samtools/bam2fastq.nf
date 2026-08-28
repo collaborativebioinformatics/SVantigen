@@ -1,7 +1,13 @@
 /*
  * MODULE: SAMTOOLS_BAM2FASTQ
- * Purpose : convert bam back to fastq
- * Status  : complete scaffold
+ * Purpose : Convert aligned BAM files back to FASTQ format for downstream re-alignment
+ * Status  : complete implementation
+ *
+ * Container : Galaxy / Biocontainers samtools 1.20
+ *
+ * Notes:
+ *  - Uses samtools collate and samtools fastq to stream collated reads into gzipped FASTQ
+ *  - Output paired or single-end FASTQ channels
  */
 
 process SAMTOOLS_BAM2FASTQ {

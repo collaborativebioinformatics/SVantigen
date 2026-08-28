@@ -1,7 +1,13 @@
 /*
  * MODULE: SNIFFLES2_CALL
- * Purpose : Call structural variants from long-read alignments
- * Status  : complete scaffold
+ * Purpose : Call structural variants from long-read alignments using Sniffles2
+ * Status  : complete implementation
+ *
+ * Container : Galaxy / Biocontainers sniffles 2.8.0
+ *
+ * Notes:
+ *  - Calls structural variants (SVs) from input BAM alignments
+ *  - Supports tandem repeat annotations and generates VCF + SNF output files
  */
 
 process SNIFFLES2_CALL {

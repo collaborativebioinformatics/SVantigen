@@ -1,9 +1,14 @@
 /*
  * MODULE: SVAHA3_BUILD_GRAPH
- * Purpose : Build the cancer driver + recurrent neoantigen pangenome graph
- *           (GFA format) from the normalized driver SVs and small somatic
- *           variants, relative to a linear reference.
- * Status  : complete scaffold
+ * Purpose : Build the cancer driver + recurrent neoantigen pangenome graph (GFA format)
+ *           from normalized driver SVs relative to a linear reference
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Executes vg construct with reference FASTA and input VCF to create .vg graph
+ *  - Converts .vg graph to GFA format using vg view for downstream indexing
  */
 
 process SVAHA3_BUILD_GRAPH {

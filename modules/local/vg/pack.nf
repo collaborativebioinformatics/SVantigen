@@ -1,7 +1,13 @@
 /*
  * MODULE: VG_PACK
- * Purpose : summarize read alignments to graph
- * Status  : complete scaffold
+ * Purpose : Summarize read alignment coverage across graph nodes and edges
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Computes coverage vector over GBZ graph using input GAM/GAF alignment
+ *  - Generates binary .pack coverage index for vg call
  */
 
 process VG_PACK {

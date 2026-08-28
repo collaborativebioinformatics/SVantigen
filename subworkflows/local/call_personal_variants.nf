@@ -1,7 +1,24 @@
 /*
  * SUBWORKFLOW: CALL_PERSONAL_VARIANTS
- * Purpose  : Align long reads to traditional reference genome and call personal small somatic & structural variants
- * Status   : complete scaffold
+ * Purpose  : Align long/short reads to linear reference genome and call personal small & structural variants
+ * Status   : complete implementation
+ *
+ * Processes: SAMTOOLS_BAM2FASTQ, SAMTOOLS_FAIDX, MINIMAP2_ALIGN / PARABRICKS_MINIMAP2_ALIGN, DEEPSOMATIC_CALL / PARABRICKS_DEEPSOMATIC_CALL, SNIFFLES2_CALL
+ *
+ * Inputs:
+ *  - ch_reads : [ val(meta), [ path(reads) ] ] - FASTQ or BAM tumor reads
+ *  - ch_fasta : [ val(meta_fasta), path(fasta) ] - Linear reference FASTA
+ *
+ * Outputs:
+ *  - aligned   : [ val(meta), path(bam) ] - Coordinate-sorted aligned BAM
+ *  - small_vcf : [ val(meta), path(vcf) ] - Small somatic variants (DeepSomatic)
+ *  - sv_vcf    : [ val(meta), path(vcf) ] - Structural variants (Sniffles2)
+ *  - versions  : [ path(versions.yml) ] - Software versions
+ *
+ * Notes:
+ *  - Generates FASTA .fai index with samtools faidx
+ *  - Performs CPU or GPU Minimap2 read alignment
+ *  - Calls small somatic variants with DeepSomatic and SVs with Sniffles2
  */
 
 include { SAMTOOLS_BAM2FASTQ          } from '../../modules/local/samtools/bam2fastq.nf'

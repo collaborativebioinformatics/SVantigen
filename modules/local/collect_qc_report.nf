@@ -1,7 +1,13 @@
 /*
  * MODULE: COLLECT_QC_REPORT
- * Purpose : collect qc report
- * Status  : complete scaffold
+ * Purpose : Generate quality control statistics and HTML report for called variants
+ * Status  : complete implementation
+ *
+ * Container : Galaxy / Biocontainers bcftools 1.20
+ *
+ * Notes:
+ *  - Calculates variant statistics using bcftools stats
+ *  - Formats summary metrics into a standalone HTML report
  */
 
 process COLLECT_QC_REPORT {

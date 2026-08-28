@@ -1,7 +1,13 @@
 /*
  * MODULE: VG_CALL
- * Purpose : call variants
- * Status  : complete scaffold
+ * Purpose : Call and genotype variants from graph alignment coverage
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Calls genotypes from GBZ graph using .pack coverage file
+ *  - Outputs gzipped VCF of graph-called variants
  */
 
 process VG_CALL {
