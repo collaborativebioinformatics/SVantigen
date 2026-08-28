@@ -92,24 +92,38 @@ workflow {
     """.stripIndent()
 
     // ------------------------------------------------------------------------
-    // Shared Input Channels
+    // Shared Input Channels & Read Type Routing
     // ------------------------------------------------------------------------
     ch_fasta = Channel.fromPath(ref_fasta, checkIfExists: true)
                 .map { file -> [ [id: file.baseName], file ] }
 
-    ch_reads = Channel.empty()
+    ch_short_reads = Channel.empty()
+    ch_long_reads  = Channel.empty()
 
     if (is_samplesheet) {
         log.info "--> Mode: Parsing samplesheet CSV (${params.input}) via INPUT_CHECK."
         ch_samplesheet = Channel.fromPath(params.input, checkIfExists: true)
         INPUT_CHECK( ch_samplesheet )
-        ch_reads = INPUT_CHECK.out.short_tumor.mix(INPUT_CHECK.out.short_normal, INPUT_CHECK.out.long_tumor, INPUT_CHECK.out.long_normal)
+
+        // Route short reads -> CALL_RECURRENT_VARIANTS
+        ch_short_reads = INPUT_CHECK.out.short_tumor.mix(INPUT_CHECK.out.short_normal)
+
+        // Route long reads -> CALL_PERSONAL_VARIANTS
+        ch_long_reads  = INPUT_CHECK.out.long_tumor.mix(INPUT_CHECK.out.long_normal)
     } else if (params.reads) {
-        ch_reads = Channel.fromPath(params.reads, checkIfExists: true)
-                    .map { file -> [ [id: file.baseName], file ] }
+        def reads_str = params.reads.toString()
+        if (reads_str.contains('long')) {
+            ch_long_reads  = Channel.fromPath(params.reads, checkIfExists: true)
+                                .map { file -> [ [id: file.baseName], file ] }
+        } else {
+            ch_short_reads = Channel.fromPath(params.reads, checkIfExists: true)
+                                .map { file -> [ [id: file.baseName], file ] }
+        }
     } else {
-        ch_reads = Channel.fromPath("${projectDir}/assets/test/tumor_short.fastq.gz", checkIfExists: true)
-                    .map { file -> [ [id: file.baseName], file ] }
+        ch_short_reads = Channel.fromPath("${projectDir}/assets/test/sample01.short.bam", checkIfExists: true)
+                            .map { file -> [ [id: file.baseName], file ] }
+        ch_long_reads  = Channel.fromPath("${projectDir}/assets/test/sample03.long.bam", checkIfExists: true)
+                            .map { file -> [ [id: file.baseName], file ] }
     }
 
     // ------------------------------------------------------------------------
@@ -151,12 +165,12 @@ workflow {
     }
 
     // ------------------------------------------------------------------------
-    // 2. Call Recurrent Drivers / Neoantigens (Pangenome Giraffe Alignment & Calling)
+    // 2. Call Recurrent Drivers / Neoantigens (Short Reads -> Pangenome Giraffe Alignment & Calling)
     // ------------------------------------------------------------------------
-    CALL_RECURRENT_VARIANTS( ch_reads, ch_pangenome_index )
+    CALL_RECURRENT_VARIANTS( ch_short_reads, ch_pangenome_index )
 
     // ------------------------------------------------------------------------
-    // 3. De Novo Call Somatic SVs / Small Variants (Minimap2 + DeepSomatic + Sniffles2)
+    // 3. De Novo Call Somatic SVs / Small Variants (Long Reads -> Minimap2 + DeepSomatic + Sniffles2)
     // ------------------------------------------------------------------------
-    CALL_PERSONAL_VARIANTS( ch_reads, ch_fasta )
+    CALL_PERSONAL_VARIANTS( ch_long_reads, ch_fasta )
 }
