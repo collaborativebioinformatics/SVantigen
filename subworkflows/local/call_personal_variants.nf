@@ -45,6 +45,15 @@ workflow CALL_PERSONAL_VARIANTS {
     ch_bams   = ch_tumor_bam.mix(ch_normal_bam)
     ch_fastq  = SAMTOOLS_BAM2FASTQ(ch_bams)
 
+    // Step 2: align each sample's reads to the linear reference.
+    // combine pairs every FASTQ with the single reference item, then map
+    // reshapes it into the [ meta, reference, reads ] tuple the module wants.
+    ch_align_input = ch_fastq
+        .combine(ch_reference)
+        .map { meta, fastq, meta_ref, fasta -> [ meta, fasta, fastq ] }
+
+    MINIMAP2_ALIGN(ch_align_input)
+
     // emit:
     // // ch_output
 }
