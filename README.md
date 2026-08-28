@@ -81,6 +81,15 @@ The `.gbz`, `.dist`, `.min`, and `.zipcodes` files together form the index set
 required by [`vg giraffe`](https://docs.nvidia.com/clara/parabricks/tool-reference/tools/giraffe)
 for short-read alignment to the pangenome.
 
+### 4. GPU Acceleration & Parabricks Module Architecture
+
+All GPU-accelerated process modules ([NVIDIA Clara Parabricks](https://docs.nvidia.com/clara/parabricks/index.html)) are cleanly isolated under `modules/local/parabricks/`, separated from standard CPU modules in `modules/local/`:
+- `modules/local/parabricks/minimap2/align.nf` (GPU Minimap2 alignment)
+- `modules/local/parabricks/deepsomatic/call.nf` (GPU DeepSomatic variant calling)
+- `modules/local/parabricks/vg/giraffe.nf` (GPU Giraffe pangenome alignment)
+
+When `--enable_gpu` is passed to Nextflow, subworkflows automatically route execution to the dedicated Parabricks GPU module suite.
+
 See [docs/usage.md](docs/usage.md) for the full parameter reference and
 [docs/output.md](docs/output.md) for a detailed description of every output file.
 
