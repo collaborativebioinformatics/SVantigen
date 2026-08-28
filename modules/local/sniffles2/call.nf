@@ -1,9 +1,13 @@
 /*
  * MODULE: SNIFFLES2_CALL
- * Purpose : Call structural variants from long-read alignments (PacBio HiFi / Nanopore)
- *           using Sniffles2.
- * Docs    : https://github.com/fritzsedlazeck/Sniffles
- * Nf-core : https://github.com/nf-core/modules/blob/master/modules/nf-core/sniffles/main.nf
+ * Purpose : Call structural variants from long-read alignments using Sniffles2
+ * Status  : complete implementation
+ *
+ * Container : Galaxy / Biocontainers sniffles 2.8.0
+ *
+ * Notes:
+ *  - Calls structural variants (SVs) from input BAM alignments
+ *  - Supports tandem repeat annotations and generates VCF + SNF output files
  */
 
 process SNIFFLES2_CALL {
@@ -11,8 +15,8 @@ process SNIFFLES2_CALL {
     label 'process_high'
 
     container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
-        ? 'https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/a3/a392a64ae046bd1b8679f2ae590f88d84fed26d569ab70810df969741722dbcc/data'
-        : 'community.wave.seqera.io/library/sniffles:2.8.0--c25a97c10afa095a' }"
+        ? 'https://depot.galaxyproject.org/singularity/sniffles:2.8.0--pyhdfd78af_1'
+        : 'biocontainers/sniffles:2.8.0--pyhdfd78af_1' }"
 
     input:
     tuple val(meta), path(bam), path(bai)
@@ -63,4 +67,3 @@ process SNIFFLES2_CALL {
     END_VERSIONS
     """
 }
-

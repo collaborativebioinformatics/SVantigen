@@ -1,17 +1,20 @@
 /*
  * MODULE: VG_PACK
- * Purpose : summarize read alignments to graph
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Purpose : Summarize read alignment coverage across graph nodes and edges
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Computes coverage vector over GBZ graph using input GAM/GAF alignment
+ *  - Generates binary .pack coverage index for vg call
  */
 
 process VG_PACK {
     tag "$meta.id"
     label 'process_high'
 
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
-        : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
+    container "quay.io/biocontainers/vg:1.76.1--h9ee0642_0"
 
     input:
     tuple val(meta), path(aln)
@@ -27,7 +30,7 @@ process VG_PACK {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def input_flag = aln.name.endsWith('.gam') ? "-g ${aln}" : "-b ${aln}"
+    def input_flag = aln.name.endsWith('.gaf') ? "-a ${aln}" : "-g ${aln}"
     """
     vg pack \\
         -x ${gbz} \\

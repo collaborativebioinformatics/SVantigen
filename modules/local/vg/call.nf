@@ -1,25 +1,28 @@
 /*
  * MODULE: VG_CALL
- * Purpose : call variants
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Purpose : Call and genotype variants from graph alignment coverage
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Calls genotypes from GBZ graph using .pack coverage file
+ *  - Outputs gzipped VCF of graph-called variants
  */
 
 process VG_CALL {
     tag "$meta.id"
     label 'process_high'
 
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
-        : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
+    container "quay.io/biocontainers/vg:1.76.1--h9ee0642_0"
 
     input:
     tuple val(meta), path(pack)
     tuple val(meta_idx), path(gbz), path(dist), path(min)
 
     output:
-    tuple val(meta), path("*.vcf.gz"), path("*.vcf.gz.tbi"), emit: vcf
-    path "versions.yml"                                    , emit: versions
+    tuple val(meta), path("*.vcf.gz"), emit: vcf
+    path "versions.yml"              , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -32,9 +35,7 @@ process VG_CALL {
         ${gbz} \\
         -k ${pack} \\
         -t ${task.cpus} \\
-        ${args} | bgzip -c > ${prefix}.vcf.gz
-
-    tabix -p vcf ${prefix}.vcf.gz
+        ${args} | gzip -c > ${prefix}.vcf.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -46,7 +47,6 @@ process VG_CALL {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     touch ${prefix}.vcf.gz
-    touch ${prefix}.vcf.gz.tbi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

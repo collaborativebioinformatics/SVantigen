@@ -1,24 +1,27 @@
 /*
  * MODULE: VG_GIRAFFE
- * Purpose : align to pangenome
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Purpose : Align short/long reads to pangenome graph using vg giraffe
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Aligns FASTQ reads using GBZ, DIST, and MIN pangenome index set
+ *  - Outputs graph alignment file in GAM format
  */
 
 process VG_GIRAFFE {
     tag "$meta.id"
     label 'process_high'
 
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
-        : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
+    container "quay.io/biocontainers/vg:1.76.1--h9ee0642_0"
 
     input:
     tuple val(meta), path(reads)
     tuple val(meta_idx), path(gbz), path(dist), path(min)
 
     output:
-    tuple val(meta), path("*.bam"), emit: bam
+    tuple val(meta), path("*.gam"), emit: gam
     path "versions.yml"           , emit: versions
 
     when:
@@ -35,8 +38,8 @@ process VG_GIRAFFE {
         -m ${min} \\
         ${fastq_args} \\
         -t ${task.cpus} \\
-        -o BAM \\
-        ${args} > ${prefix}.bam
+        -o GAM \\
+        ${args} > ${prefix}.gam
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -47,7 +50,7 @@ process VG_GIRAFFE {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.bam
+    touch ${prefix}.gam
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

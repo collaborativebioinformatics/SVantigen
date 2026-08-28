@@ -1,87 +1,102 @@
 /*
  * SUBWORKFLOW: CALL_PERSONAL_VARIANTS
- * Purpose  : Align reads to the traditional reference and call variants.
- *            Discover personal (patient-private) variants from matched
- *            tumor/normal long reads aligned to the linear reference.
+ * Purpose  : Align long/short reads to linear reference genome and call personal small & structural variants
+ * Status   : complete implementation
  *
- * Processes: SAMTOOLS_BAM2FASTQ, MINIMAP2_ALIGN, DEEPSOMATIC_CALL, SNIFFLES2_CALL
+ * Processes: SAMTOOLS_BAM2FASTQ, SAMTOOLS_FAIDX, MINIMAP2_ALIGN / PARABRICKS_MINIMAP2_ALIGN, DEEPSOMATIC_CALL / PARABRICKS_DEEPSOMATIC_CALL, SNIFFLES2_CALL
  *
  * Inputs:
- *   - ch_tumor_bam  : [ meta, bam ] tumor long-read BAM
- *   - ch_normal_bam : [ meta, bam ] normal long-read BAM
- *   - ch_reference  : [ meta, fasta ] linear reference genome
+ *  - ch_reads : [ val(meta), [ path(reads) ] ] - FASTQ or BAM tumor reads
+ *  - ch_fasta : [ val(meta_fasta), path(fasta) ] - Linear reference FASTA
  *
  * Outputs:
- *   - snv_vcf : personal SNV/indel calls (from DeepSomatic)
- *   - sv_vcf  : personal structural variant calls (from Sniffles2)
- * Status   : scaffold, module commands not yet implemented
- * Notes    : The [ meta, bam ] notation is the repo's shorthand for 
- *            a Nextflow channel carrying a tuple: a small map of sample metadata 
- *            travelling alongside the file
+ *  - aligned   : [ val(meta), path(bam) ] - Coordinate-sorted aligned BAM
+ *  - small_vcf : [ val(meta), path(vcf) ] - Small somatic variants (DeepSomatic)
+ *  - sv_vcf    : [ val(meta), path(vcf) ] - Structural variants (Sniffles2)
+ *  - versions  : [ path(versions.yml) ] - Software versions
  *
+ * Notes:
+ *  - Generates FASTA .fai index with samtools faidx
+ *  - Performs CPU or GPU Minimap2 read alignment
+ *  - Calls small somatic variants with DeepSomatic and SVs with Sniffles2
  */
 
-include { SAMTOOLS_BAM2FASTQ } from '../../modules/local/samtools/bam2fastq.nf'
-include { MINIMAP2_ALIGN     } from '../../modules/local/minimap2/align.nf' 
-include { DEEPSOMATIC_CALL   } from '../../modules/local/deepsomatic/call.nf'
-include { SNIFFLES2_CALL     } from '../../modules/local/sniffles2/call.nf'
+include { SAMTOOLS_BAM2FASTQ          } from '../../modules/local/samtools/bam2fastq.nf'
+include { SAMTOOLS_FAIDX              } from '../../modules/local/samtools/faidx.nf'
+include { MINIMAP2_ALIGN              } from '../../modules/local/minimap2/align.nf' 
+include { DEEPSOMATIC_CALL            } from '../../modules/local/deepsomatic/call.nf'
+include { SNIFFLES2_CALL              } from '../../modules/local/sniffles2/call.nf'
 
 // FOR GPU ACCELERATION
-include { PARABRICKS_MINIMAP2_ALIGN     } from '../../modules/local/parabricks/minimap2/align.nf' 
-include { PARABRICKS_DEEPSOMATIC_CALL   } from '../../modules/local/parabricks/deepsomatic/call.nf'
-
+include { PARABRICKS_MINIMAP2_ALIGN   } from '../../modules/local/parabricks/minimap2/align.nf' 
+include { PARABRICKS_DEEPSOMATIC_CALL } from '../../modules/local/parabricks/deepsomatic/call.nf'
 
 workflow CALL_PERSONAL_VARIANTS {
 
     take:
-    ch_tumor_bam  // [ meta, bam ] tumor long-read BAM
-    ch_normal_bam // [ meta, bam ] normal long-read BAM
-    ch_reference  //[ meta, fasta ] linear reference genome
+    ch_reads  // channel: [ val(meta), [ path(reads) ] ] (BAM or FASTQ)
+    ch_fasta  // channel: [ val(meta_fasta), path(fasta) ]
 
     main:
-    // Step 1: strip both BAMs back to raw reads.
-    // Mixing tumor + normal into one channel means one process call and
-    // one task per sample, instead of two hard-coded calls.
-    ch_bams   = ch_tumor_bam.mix(ch_normal_bam)
-    ch_fastq  = SAMTOOLS_BAM2FASTQ(ch_bams)
+    ch_versions = Channel.empty()
 
-    // Step 2: align each sample's reads to the linear reference.
-    // combine pairs every FASTQ with the single reference item, then map
-    // reshapes it into the [ meta, reference, reads ] tuple the module wants.
-    ch_align_input = ch_fastq
-        .combine(ch_reference)
-        .map { meta, fastq, meta_ref, fasta -> [ meta, fasta, fastq ] }
-
-    MINIMAP2_ALIGN(ch_align_input)
-
-    // Step 3: pair each BAM with its index, then split the mixed stream back
-    // into tumor and normal lanes using the status carried in meta.
-    ch_aligned = MINIMAP2_ALIGN.out.bam
-        .join(MINIMAP2_ALIGN.out.bai)
-        .branch { meta, bam, bai ->
-            tumor:  meta.status == 'tumor'
-            normal: meta.status == 'normal'
+    // 1. Separate BAM vs FASTQ input
+    ch_reads
+        .branch { meta, reads ->
+            def read_list = reads instanceof List ? reads : [reads]
+            bam: read_list[0].name.endsWith('.bam')
+            fastq: true
         }
+        .set { ch_input_reads }
 
-    // Step 4a: SNV/indel calling. Re-pair tumor with its matched normal
-    // on pair_id so DeepSomatic can subtract germline from tumor.
-    ch_somatic_input = ch_aligned.tumor
-        .map { meta, bam, bai -> [ meta.pair_id, meta, bam, bai ] }
-        .join( ch_aligned.normal.map { meta, bam, bai -> [ meta.pair_id, bam, bai ] } )
-        .map { pair_id, meta, t_bam, t_bai, n_bam, n_bai ->
-            [ meta, t_bam, t_bai, n_bam, n_bai ]
-        }
+    // Convert BAM to FASTQ if required
+    SAMTOOLS_BAM2FASTQ ( ch_input_reads.bam )
+    ch_versions = ch_versions.mix(SAMTOOLS_BAM2FASTQ.out.versions)
 
-    DEEPSOMATIC_CALL(ch_somatic_input, ch_reference)
+    ch_fastqs = ch_input_reads.fastq.mix(SAMTOOLS_BAM2FASTQ.out.fastq)
 
-    // Step 4b: structural variant calling on the tumor alignment.
-    // No tandem-repeat annotation yet, so pass the NO_FILE placeholder.
-    ch_no_tandem = Channel.value([ [id: 'no_tandem'], file('NO_FILE') ])
+    // Index reference FASTA
+    SAMTOOLS_FAIDX ( ch_fasta )
+    ch_fa_fai   = SAMTOOLS_FAIDX.out.fa_fai
+    ch_versions = ch_versions.mix(SAMTOOLS_FAIDX.out.versions)
 
-    SNIFFLES2_CALL(ch_aligned.tumor, ch_reference, ch_no_tandem)
+    // 2. Align reads to reference genome (CPU or GPU Minimap2)
+    if (params.enable_gpu) {
+        PARABRICKS_MINIMAP2_ALIGN ( ch_fastqs, ch_fasta )
+        ch_aligned_reads = PARABRICKS_MINIMAP2_ALIGN.out.bam
+        ch_aligned_bai   = PARABRICKS_MINIMAP2_ALIGN.out.bai
+        ch_versions      = ch_versions.mix(PARABRICKS_MINIMAP2_ALIGN.out.versions)
+    } else {
+        MINIMAP2_ALIGN ( ch_fastqs, ch_fasta )
+        ch_aligned_reads = MINIMAP2_ALIGN.out.bam
+        ch_aligned_bai   = MINIMAP2_ALIGN.out.bai
+        ch_versions      = ch_versions.mix(MINIMAP2_ALIGN.out.versions)
+    }
+
+    ch_aligned_with_bai = ch_aligned_reads.join(ch_aligned_bai)
+
+    // 3. Call small somatic variants (DeepSomatic CPU or GPU)
+    if (params.enable_gpu) {
+        PARABRICKS_DEEPSOMATIC_CALL ( ch_aligned_reads, ch_fasta )
+        ch_small_vcf = PARABRICKS_DEEPSOMATIC_CALL.out.vcf
+        ch_versions  = ch_versions.mix(PARABRICKS_DEEPSOMATIC_CALL.out.versions)
+    } else {
+        DEEPSOMATIC_CALL ( ch_aligned_with_bai, ch_fa_fai )
+        ch_small_vcf = DEEPSOMATIC_CALL.out.vcf
+        ch_versions  = ch_versions.mix(DEEPSOMATIC_CALL.out.versions)
+    }
+
+    // 4. Call structural variants (Sniffles2)
+    // Use .collect() so ch_tandem acts as a reusable value channel across all samples
+    ch_tandem = Channel.of( [ [id: 'no_tandem'], file('NO_FILE') ] ).collect()
+
+    SNIFFLES2_CALL ( ch_aligned_with_bai, ch_fasta, ch_tandem )
+    ch_sv_vcf   = SNIFFLES2_CALL.out.vcf
+    ch_versions = ch_versions.mix(SNIFFLES2_CALL.out.versions)
 
     emit:
-    snv_vcf = DEEPSOMATIC_CALL.out.vcf   // personal SNV/indel calls
-    sv_vcf  = SNIFFLES2_CALL.out.vcf     // personal structural variant calls
-    bam     = MINIMAP2_ALIGN.out.bam     // alignments, reused by downstream QC
+    aligned     = ch_aligned_reads // channel: [ val(meta), path(bam) ]
+    small_vcf   = ch_small_vcf     // channel: [ val(meta), path(vcf) ]
+    sv_vcf      = ch_sv_vcf        // channel: [ val(meta), path(vcf) ]
+    versions    = ch_versions      // channel: [ path(versions.yml) ]
 }

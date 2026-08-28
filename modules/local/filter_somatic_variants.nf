@@ -1,20 +1,25 @@
 /*
  * MODULE: FILTER_SOMATIC_VARIANTS
- * Purpose : filter somatic variants
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Purpose : Filter called VCF records for PASSing somatic variants
+ * Status  : complete implementation
+ *
+ * Container : Galaxy / Biocontainers bcftools 1.20
+ *
+ * Notes:
+ *  - Filters VCF for FILTER=="PASS" or missing filter annotations
+ *  - Produces gzipped VCF and tabix index (.tbi)
  */
 
 process FILTER_SOMATIC_VARIANTS {
     tag "$meta.id"
     label 'process_low'
 
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/bcftools:1.20--h4260373_1'
-        : 'biocontainers/bcftools:1.20--h4260373_1'}"
+    container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
+        ? 'https://depot.galaxyproject.org/singularity/bcftools:1.20--h8b25389_1'
+        : 'biocontainers/bcftools:1.20--h8b25389_1' }"
 
     input:
-    tuple val(meta), path(vcf), path(tbi)
+    tuple val(meta), path(vcf)
 
     output:
     tuple val(meta), path("*_somatic.vcf.gz"), path("*_somatic.vcf.gz.tbi"), emit: vcf

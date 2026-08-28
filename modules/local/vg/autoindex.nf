@@ -1,18 +1,20 @@
 /*
  * MODULE: VG_AUTOINDEX
- * Purpose : Build the giraffe-compatible index set (GBZ, distance, minimizer,
- *           etc.) from the cancer SV pangenome so it can be used for
- *           short-read alignment in the CALL_RECURRENT_VARIANTS subworkflow.
- * Status  : complete scaffold
+ * Purpose : Build giraffe-compatible index set (GBZ graph, distance, minimizer) from GFA
+ * Status  : complete implementation
+ *
+ * Container : Biocontainers vg 1.76.1
+ *
+ * Notes:
+ *  - Runs vg autoindex --workflow giraffe on input GFA pangenome
+ *  - Generates .gbz (GBZ graph), .dist (distance index), and .min (minimizer index)
  */
 
 process VG_AUTOINDEX {
     tag "$meta.id"
     label 'process_high'
 
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
-        : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
+    container "quay.io/biocontainers/vg:1.76.1--h9ee0642_0"
 
     input:
     tuple val(meta), path(gfa)

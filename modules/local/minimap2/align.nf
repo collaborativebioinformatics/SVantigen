@@ -1,67 +1,65 @@
 /*
  * MODULE: MINIMAP2_ALIGN
- * Purpose : GPU-accelerated long-read alignment with NVIDIA Parabricks minimap2,
- *           coordinate-sorted BAM output (drop-in GPU replacement for the CPU
- *           minimap2 + samtools sort/index pipeline)
- * Status  : implemented
+ * Purpose : CPU long-read alignment with minimap2, coordinate-sorted BAM output
+ * Status  : complete implementation
  *
- * Container : NVIDIA Clara Parabricks (bundles GPU minimap2 + samtools)
- * Docs      : https://docs.nvidia.com/clara/parabricks/tool-reference/tools/minimap2
+ * Container : Wave / Biocontainers minimap2 + samtools
  * Nf-core precursor (CPU): https://github.com/nf-core/modules/blob/master/modules/nf-core/minimap2/align/main.nf
  *
  * Notes:
- *  - pbrun minimap2 replaces the `minimap2 -ax ... | samtools sort` pipe with a
- *    single GPU-accelerated call that writes a coordinate-sorted BAM directly.
- *  - `--preset` values differ slightly from vanilla minimap2 but 'map-pbmm2'
- *    (the default here) is still supported and reproduces pbmm2-style output.
- *  - Requires GPU access at container runtime: Docker needs `--gpus all`,
- *    Singularity/Apptainer needs `--nv`. This is wired via `containerOptions`
- *    and the `accelerator` directive so it plays nicely with Slurm/HPC GPU
- *    scheduling (e.g. `--gres=gpu:1`).
- *  - `.bai` is produced with `samtools index`, which ships in the same
- *    Parabricks container, so no extra container/module is needed.
- *  - Double-check for HPC setup: Parabricks licensing and container access (NGC registry auth) may require credentials distinct 
- *    from your usual Seqera/Wave container pulls — confirm your cluster's Singularity/Apptainer build has NGC access before running this at scale.
+ *  - Align long reads (ONT / PacBio) to reference genome using minimap2 -ax map-ont
+ *  - Sorts alignment using samtools sort and produces indexed .bam + .bai output
  */
 
 process MINIMAP2_ALIGN {
+    tag "$meta.id"
+    label 'process_high'
 
-    label 'gpu'
-
-    // Request 1 GPU by default; override via process-level `accelerator` config
-    // (e.g. accelerator 2, type: 'nvidia-tesla-a100') or task.ext in nextflow.config
-    accelerator 1, type: task.ext.gpuType ?: null
-
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/clara-parabricks:4.7.1-1'
-        : 'nvcr.io/nvidia/clara/clara-parabricks:4.7.1-1' }"
-
-    // GPU device access at runtime
-    containerOptions {
-        workflow.containerEngine == 'singularity' ? '--nv' : '--gpus all'
-    }
+    container "community.wave.seqera.io/library/minimap2_samtools:b09096fc890429ce"
 
     input:
-    tuple val(meta), path(reference), path(reads)
+    tuple val(meta), path(reads)
+    tuple val(meta_fasta), path(fasta)
 
     output:
-    tuple val(meta), path("${meta.id}.bam"),     emit: bam
-    tuple val(meta), path("${meta.id}.bam.bai"), emit: bai
+    tuple val(meta), path("*.bam"),     emit: bam
+    tuple val(meta), path("*.bam.bai"), emit: bai
+    path "versions.yml"               , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
-    def preset  = task.ext.preset  ?: 'map-pbmm2'
-    def args    = task.ext.args    ?: ''
-    def numGpus = task.ext.numGpus ?: (task.accelerator?.request ?: 1)
+    def preset = task.ext.preset ?: 'map-ont'
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    pbrun minimap2 \\
-        --ref ${reference} \\
-        --in-fq ${reads} \\
-        --out-bam ${meta.id}.bam \\
-        --preset ${preset} \\
-        --num-gpus ${numGpus} \\
-        --num-threads ${task.cpus} \\
-        ${args}
+    minimap2 \\
+        -ax ${preset} \\
+        ${args} \\
+        ${fasta} \\
+        ${reads} | \\
+    samtools sort -@ ${task.cpus} -o ${prefix}.bam
 
-    samtools index ${meta.id}.bam
+    samtools index ${prefix}.bam
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        minimap2: \$(minimap2 --version 2>&1)
+        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}.bam
+    touch ${prefix}.bam.bai
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        minimap2: \$(minimap2 --version 2>&1)
+        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
+    END_VERSIONS
     """
 }
