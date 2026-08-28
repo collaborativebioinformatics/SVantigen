@@ -40,6 +40,9 @@ workflow CALL_RECURRENT_VARIANTS {
     main:
     ch_versions = Channel.empty()
 
+    // Ensure ch_giraffe_index acts as a reusable Value Channel across multiple samples & downstream processes
+    ch_index = ch_giraffe_index.collect()
+
     // 1. Separate BAM vs FASTQ input
     ch_reads
         .branch { meta, reads ->
@@ -59,23 +62,24 @@ workflow CALL_RECURRENT_VARIANTS {
     ch_versions = ch_versions.mix(SAMTOOLS_BAM2FASTQ.out.versions)
 
     ch_fastqs = ch_input_reads.fastq.mix(SAMTOOLS_BAM2FASTQ.out.fastq)
+
     // 2. Align short reads to driver pangenome via CPU or GPU Giraffe
     if (params.enable_gpu) {
-        PARABRICKS_VG_GIRAFFE ( ch_fastqs, ch_giraffe_index )
+        PARABRICKS_VG_GIRAFFE ( ch_fastqs, ch_index )
         ch_aligned_reads = PARABRICKS_VG_GIRAFFE.out.bam
         ch_versions      = ch_versions.mix(PARABRICKS_VG_GIRAFFE.out.versions)
     } else {
-        VG_GIRAFFE ( ch_fastqs, ch_giraffe_index )
+        VG_GIRAFFE ( ch_fastqs, ch_index )
         ch_aligned_reads = VG_GIRAFFE.out.gam
         ch_versions      = ch_versions.mix(VG_GIRAFFE.out.versions)
     }
 
     // 3. Summarize read coverage on graph (vg pack)
-    VG_PACK ( ch_aligned_reads, ch_giraffe_index )
+    VG_PACK ( ch_aligned_reads, ch_index )
     ch_versions = ch_versions.mix(VG_PACK.out.versions)
 
     // 4. Genotype variants (vg call)
-    VG_CALL ( VG_PACK.out.pack, ch_giraffe_index )
+    VG_CALL ( VG_PACK.out.pack, ch_index )
     ch_versions = ch_versions.mix(VG_CALL.out.versions)
 
     // 5. Filter for somatic variants
