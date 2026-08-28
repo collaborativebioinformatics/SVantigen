@@ -54,6 +54,15 @@ workflow CALL_PERSONAL_VARIANTS {
 
     MINIMAP2_ALIGN(ch_align_input)
 
+    // Step 3: pair each BAM with its index, then split the mixed stream back
+    // into tumor and normal lanes using the status carried in meta.
+    ch_aligned = MINIMAP2_ALIGN.out.bam
+        .join(MINIMAP2_ALIGN.out.bai)
+        .branch { meta, bam, bai ->
+            tumor:  meta.status == 'tumor'
+            normal: meta.status == 'normal'
+        }
+
     // emit:
     // // ch_output
 }
