@@ -71,7 +71,7 @@ Everything is published under `results/pangenome/`:
 
 | File | Description |
 | --- | --- |
-| `driver_pangenome.gfa` | The variation graph in GFA format (from [svaha3](https://github.com/edawson/svaha)) |
+| `driver_pangenome.gfa` | The variation graph in GFA format (from [svaha2](https://github.com/edawson/svaha2/tree/modernize)) |
 | `driver_pangenome.gbz` | The graph in vg's binary GBZ format (from `vg autoindex`) |
 | `driver_pangenome.dist` | Giraffe distance index |
 | `driver_pangenome.shortread.withzip.min` | Giraffe minimizer index |

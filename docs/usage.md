@@ -6,7 +6,7 @@ How to run the SVantigen pipeline's variation-graph construction subworkflow
 ## Requirements
 
 - Nextflow `>= 26.04.6`
-- Docker or Singularity (for the `vg` and `svaha3` containers)
+- Docker or Singularity (for the `vg` and `svaha2` containers)
 - A FASTA reference and its `.fai` index
 - A variant manifest TSV (see below)
 
@@ -69,9 +69,9 @@ nextflow run main.nf -profile singularity \
 
 ## What it does
 
-1. **`SVAHA3_BUILD_GRAPH`** — builds a pangenome variation graph (GFA) from the
+1. **`SVAHA2_BUILD`** — builds a pangenome variation graph (GFA) from the
    reference and the manifest's variant files using
-   [svaha3](https://github.com/edawson/svaha).
+   [svaha2](https://github.com/edawson/svaha2/tree/modernize).
 2. **`VG_AUTOINDEX`** — converts the GFA into vg's binary GBZ format and builds
    the `vg giraffe` index set (distance, minimizer, zipcodes) using
    `vg autoindex -w giraffe`.

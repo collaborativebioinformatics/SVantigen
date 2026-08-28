@@ -5,7 +5,7 @@
  *           known variants, then runs vg autoindex to produce a vg graph (GBZ)
  *           and the giraffe index set.
  *
- * Processes: SVAHA3_BUILD_GRAPH, VG_AUTOINDEX
+ * Processes: SVAHA2_BUILD, VG_AUTOINDEX
  *
  * Inputs (via params):
  *   - params.reference        : FASTA reference (required)
@@ -13,14 +13,14 @@
  *   - params.variants         : manifest TSV (type<TAB>file, with header)
  *
  * Outputs:
- *   - gfa       : pangenome graph in GFA format (from svaha3)
+ *   - gfa       : pangenome graph in GFA format (from svaha2)
  *   - gbz       : vg graph in GBZ format (from vg autoindex)
  *   - dist/min/zipcodes : giraffe index set (from vg autoindex)
  * Status   : implemented
  */
 
-include { SVAHA3_BUILD_GRAPH } from '../../modules/local/svaha3/build_graph.nf'
-include { VG_AUTOINDEX       } from '../../modules/local/vg/autoindex.nf'
+include { SVAHA2_BUILD    } from '../../modules/local/svaha2/build.nf'
+include { VG_AUTOINDEX    } from '../../modules/local/vg/autoindex.nf'
 
 workflow BUILD_DRIVER_PANGENOME {
 
@@ -36,12 +36,12 @@ workflow BUILD_DRIVER_PANGENOME {
     def manifest   = file(params.variants)
 
     // main:
-    SVAHA3_BUILD_GRAPH(Channel.value([meta, reference, refIdx, manifest]))
-    VG_AUTOINDEX(SVAHA3_BUILD_GRAPH.out.gfa)
+    SVAHA2_BUILD(Channel.value([meta, reference, refIdx, manifest]))
+    VG_AUTOINDEX(SVAHA2_BUILD.out.gfa)
 
     // emit:
     emit:
-    gfa      = SVAHA3_BUILD_GRAPH.out.gfa
+    gfa      = SVAHA2_BUILD.out.gfa
     gbz      = VG_AUTOINDEX.out.gbz
     dist     = VG_AUTOINDEX.out.dist
     min      = VG_AUTOINDEX.out.min
