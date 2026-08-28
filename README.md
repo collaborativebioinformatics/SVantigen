@@ -34,7 +34,13 @@ The **SVantigen** pipeline parses tumor/normal sample BAM or FASTQ reads via a C
 
 ### 1. Test Execution Out-of-the-Box
 
-To run the pipeline instantly with the built-in minimal synthetic test dataset:
+To run the pipeline instantly in **dry-run / stub mode** (without pulling containers or downloading data):
+
+```bash
+nextflow run main.nf -profile test -stub-run
+```
+
+To run the pipeline with full real container execution on the synthetic test dataset:
 
 ```bash
 nextflow run main.nf -profile test,singularity
