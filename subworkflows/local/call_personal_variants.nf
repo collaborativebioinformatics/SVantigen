@@ -63,6 +63,17 @@ workflow CALL_PERSONAL_VARIANTS {
             normal: meta.status == 'normal'
         }
 
+    // Step 4a: SNV/indel calling. Re-pair tumor with its matched normal
+    // on pair_id so DeepSomatic can subtract germline from tumor.
+    ch_somatic_input = ch_aligned.tumor
+        .map { meta, bam, bai -> [ meta.pair_id, meta, bam, bai ] }
+        .join( ch_aligned.normal.map { meta, bam, bai -> [ meta.pair_id, bam, bai ] } )
+        .map { pair_id, meta, t_bam, t_bai, n_bam, n_bai ->
+            [ meta, t_bam, t_bai, n_bam, n_bai ]
+        }
+
+    DEEPSOMATIC_CALL(ch_somatic_input, ch_reference)
+
     // emit:
     // // ch_output
 }
