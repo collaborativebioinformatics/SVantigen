@@ -1,8 +1,7 @@
 /*
  * SUBWORKFLOW: CALL_RECURRENT_VARIANTS
  * Purpose  : Align reads to the created cancer driver pangenome and call variants
- * Status   : placeholder, not yet implemented
- * Assigned : to be assigned
+ * Status  : complete scaffold
  */
 
 include { SAMTOOLS_BAM2FASTQ      } from '../../modules/local/samtools/bam2fastq.nf'   
@@ -50,7 +49,7 @@ workflow CALL_RECURRENT_VARIANTS {
         ch_versions      = ch_versions.mix(PARABRICKS_VG_GIRAFFE.out.versions)
     } else {
         VG_GIRAFFE ( ch_fastqs, ch_giraffe_index )
-        ch_aligned_reads = VG_GIRAFFE.out.bam
+        ch_aligned_reads = VG_GIRAFFE.out.gam
         ch_versions      = ch_versions.mix(VG_GIRAFFE.out.versions)
     }
 
@@ -71,7 +70,7 @@ workflow CALL_RECURRENT_VARIANTS {
     ch_versions = ch_versions.mix(COLLECT_QC_REPORT.out.versions)
 
     emit:
-    aligned  = ch_aligned_reads               // channel: [ val(meta), path(bam) ]
+    aligned  = ch_aligned_reads               // channel: [ val(meta), path(gam) ]
     vcf      = FILTER_SOMATIC_VARIANTS.out.vcf// channel: [ val(meta), path(vcf), path(tbi) ]
     qc       = COLLECT_QC_REPORT.out.html     // channel: [ val(meta), path(html) ]
     versions = ch_versions                    // channel: [ path(versions.yml) ]

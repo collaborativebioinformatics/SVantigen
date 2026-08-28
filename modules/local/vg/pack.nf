@@ -1,17 +1,14 @@
 /*
  * MODULE: VG_PACK
  * Purpose : summarize read alignments to graph
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Status  : complete scaffold
  */
 
 process VG_PACK {
     tag "$meta.id"
     label 'process_high'
 
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/vg:1.76.1--h9ee0642_0'
-        : 'biocontainers/vg:1.76.1--h9ee0642_0'}"
+    container "quay.io/biocontainers/vg:1.76.1--h9ee0642_0"
 
     input:
     tuple val(meta), path(aln)
@@ -27,7 +24,7 @@ process VG_PACK {
     script:
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
-    def input_flag = aln.name.endsWith('.gam') ? "-g ${aln}" : "-b ${aln}"
+    def input_flag = aln.name.endsWith('.gaf') ? "-a ${aln}" : "-g ${aln}"
     """
     vg pack \\
         -x ${gbz} \\

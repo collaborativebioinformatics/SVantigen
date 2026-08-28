@@ -1,17 +1,16 @@
 /*
  * MODULE: COLLECT_QC_REPORT
  * Purpose : collect qc report
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Status  : complete scaffold
  */
 
 process COLLECT_QC_REPORT {
     tag "$meta.id"
     label 'process_low'
 
-    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
-        ? 'https://depot.galaxyproject.org/singularity/bcftools:1.20--h4260373_1'
-        : 'biocontainers/bcftools:1.20--h4260373_1'}"
+    container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
+        ? 'https://depot.galaxyproject.org/singularity/bcftools:1.20--h8b25389_1'
+        : 'biocontainers/bcftools:1.20--h8b25389_1' }"
 
     input:
     tuple val(meta), path(vcf), path(tbi)

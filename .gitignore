@@ -1,4 +1,5 @@
 .nextflow*
 work/
 results/
-local/
+/local/
+singularity_images/

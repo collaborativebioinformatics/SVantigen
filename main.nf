@@ -2,58 +2,138 @@
 
 /*
 ========================================================================================
-    SVANTIGEN PIPELINE SCAFFOLD
+    SVANTIGEN PIPELINE
 ========================================================================================
-    Minimal Nextflow DSL2 scaffold.
+    Identifying candidate neoantigens and druggable mutations in SV space
 ========================================================================================
 */
 
-// ----------------------------------------------------------------------------
-// Subworkflow includes
-// ----------------------------------------------------------------------------
-include { INPUT_CHECK             } from './subworkflows/local/input_check'
+// ----------------------------------------------------------------------------------------
+// Subworkflow & Module Includes
+// ----------------------------------------------------------------------------------------
 include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
 include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
 include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
+include { VG_AUTOINDEX            } from './modules/local/vg/autoindex'
+
+// ----------------------------------------------------------------------------------------
+// Parameter Definitions
+// ----------------------------------------------------------------------------------------
+params {
+    help                   : Boolean = false
+    input                  : Path?   = null  // Driver SV VCF file (for building pangenome from scratch)
+    pangenome              : Path?   = null  // Pre-built GFA pangenome file
+    pangenome_index        : String? = null  // Pre-built pangenome index files (.gbz, .dist, .min)
+    fasta                  : Path?   = null  // Reference genome FASTA file
+    reads                  : Path?   = null  // Input short/long FASTQ/BAM reads
+    outdir                 : String  = './results'
+    publish_dir_mode       : String  = 'copy'
+    enable_gpu             : Boolean = false
+    apptainer_cache_dir    : String
+    apptainer_library_dir  : String
+    software_versions_path : String
+}
+
+def failParam(String msg) {
+    log.error msg
+    System.exit(1)
+}
 
 workflow {
 
+    if (params.help) {
+        log.info """
+            ===================================================================
+            SVantigen Pipeline - Identifying Candidate Neoantigens in SV Space
+            ===================================================================
+            Usage:
+              1. Build pangenome from VCF (Default):
+                 nextflow run main.nf --input driver_svs.vcf -profile test,singularity
+
+              2. Use pre-built GFA pangenome graph:
+                 nextflow run main.nf --pangenome cancer_driver.gfa -profile test,singularity
+
+              3. Use pre-built pangenome index files (Bypasses Subworkflow 1):
+                 nextflow run main.nf --pangenome_index "path/to/gbz,path/to/dist,path/to/min" -profile test,singularity
+
+            Options:
+              --input            Path to input driver SV VCF file
+              --pangenome        Path to pre-built GFA pangenome file
+              --pangenome_index  Path or comma-separated list to pre-built index files (.gbz, .dist, .min)
+              --fasta            Path to reference genome FASTA file
+              --reads            Path to input tumor FASTQ/BAM file
+              --outdir           Output directory for results [default: ./results]
+              --enable_gpu       Enable GPU-accelerated execution [default: false]
+            """.stripIndent()
+        exit 0
+    }
+
     log.info """
+        ===================================================================
         SVantigen Pipeline
-        ==================
-        input      : ${params.input}
-        outdir     : ${params.outdir}
-        enable_gpu : ${params.enable_gpu}
+        ===================================================================
+        input           : ${params.input}
+        pangenome       : ${params.pangenome}
+        pangenome_index : ${params.pangenome_index}
+        fasta           : ${params.fasta}
+        reads           : ${params.reads}
+        outdir          : ${params.outdir}
+        enable_gpu      : ${params.enable_gpu}
+        ===================================================================
     """.stripIndent()
 
     // ------------------------------------------------------------------------
-    // Parse the samplesheet into typed tumor/normal channels (issue #19)
+    // Shared Input Channels
     // ------------------------------------------------------------------------
-    ch_samplesheet = channel.fromPath(params.input)
-    INPUT_CHECK(ch_samplesheet)
-
-    // Future issues will wire these channels to analysis subworkflows:
-    // ch_short_tumor  = INPUT_CHECK.out.short_tumor
-    // ch_short_normal = INPUT_CHECK.out.short_normal
-    // ch_long_tumor   = INPUT_CHECK.out.long_tumor
-    // ch_long_normal  = INPUT_CHECK.out.long_normal
+    ch_fasta = Channel.fromPath(params.fasta ?: "${projectDir}/assets/test/reference.fasta", checkIfExists: true)
+                .map { file -> [ [id: file.baseName], file ] }
+    ch_reads = Channel.fromPath(params.reads ?: "${projectDir}/assets/test/tumor_short.fastq.gz", checkIfExists: true)
+                .map { file -> [ [id: file.baseName], file ] }
 
     // ------------------------------------------------------------------------
-    // Channel initialization
+    // 1. Pangenome Graph & Index Resolution
     // ------------------------------------------------------------------------
-    if (params.input) {
-        ch_vcf   = Channel.fromPath(params.input).map { file -> [ [id: file.baseName], file ] }
-        ch_fasta = Channel.fromPath(params.fasta ?: 'assets/test/reference.fasta').map { file -> [ [id: file.baseName], file ] }
-        ch_reads = Channel.fromPath(params.reads ?: 'assets/test/tumor_short.fastq.gz').map { file -> [ [id: file.baseName], file ] }
+    ch_pangenome_index = Channel.empty()
 
-        // 1. Build Cancer Driver Pangenome Index (GFA -> Giraffe GBZ, DIST, MIN)
+    if (params.pangenome_index) {
+        log.info "--> Mode: Using pre-built pangenome index (${params.pangenome_index}). Bypassing Subworkflow 1."
+        def index_paths = params.pangenome_index.toString().split(',').collect { file(it.trim()) }
+        ch_pangenome_index = Channel.fromPath(index_paths, checkIfExists: true)
+            .collect()
+            .map { files ->
+                def gbz  = files.find { it.name.endsWith('.gbz') }
+                def dist = files.find { it.name.endsWith('.dist') }
+                def min  = files.find { it.name.endsWith('.min') }
+                if (!gbz || !dist || !min) {
+                    log.error "Could not locate all 3 index files (.gbz, .dist, .min) in --pangenome_index: ${params.pangenome_index}"
+                    System.exit(1)
+                }
+                [ [id: gbz.baseName.replaceAll('\\.giraffe$', '')], gbz, dist, min ]
+            }
+    } else if (params.pangenome) {
+        log.info "--> Mode: Using pre-built GFA graph (${params.pangenome}). Indexing via VG_AUTOINDEX."
+        ch_gfa = Channel.fromPath(params.pangenome, checkIfExists: true)
+                    .map { file -> [ [id: file.baseName], file ] }
+        VG_AUTOINDEX( ch_gfa )
+        ch_pangenome_index = VG_AUTOINDEX.out.index
+    } else if (params.input) {
+        log.info "--> Mode: Building pangenome graph and index from scratch using VCF (${params.input})."
+        ch_vcf = Channel.fromPath(params.input, checkIfExists: true)
+                    .map { file -> [ [id: file.baseName], file ] }
+        
         BUILD_DRIVER_PANGENOME( ch_vcf, ch_fasta )
-
-        // 2. Align reads to pangenome & call recurrent variants (GPU / CPU Giraffe)
-        CALL_RECURRENT_VARIANTS( ch_reads, BUILD_DRIVER_PANGENOME.out.index )
-
-        // 3. Align reads to reference & call personal variants (DeepSomatic & Sniffles2)
-        CALL_PERSONAL_VARIANTS( ch_reads, ch_fasta )
+        ch_pangenome_index = BUILD_DRIVER_PANGENOME.out.index
+    } else {
+        failParam("Please specify one of: --input (VCF), --pangenome (GFA), or --pangenome_index (.gbz,.dist,.min).")
     }
 
+    // ------------------------------------------------------------------------
+    // 2. Call Recurrent Drivers / Neoantigens (Pangenome Giraffe Alignment & Calling)
+    // ------------------------------------------------------------------------
+    CALL_RECURRENT_VARIANTS( ch_reads, ch_pangenome_index )
+
+    // ------------------------------------------------------------------------
+    // 3. De Novo Call Somatic SVs / Small Variants (Minimap2 + DeepSomatic + Sniffles2)
+    // ------------------------------------------------------------------------
+    CALL_PERSONAL_VARIANTS( ch_reads, ch_fasta )
 }

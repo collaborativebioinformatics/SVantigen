@@ -1,36 +1,46 @@
 /*
  * MODULE: PARABRICKS_MINIMAP2_ALIGN
- * Purpose : GPU-accelerated long-read alignment (minimap2 + KSW2 on GPU),
- *           coordinate-sorted BAM output.
- * Status  : implemented
- *
- * Container: nvcr.io/nvidia/clara/clara-parabricks:4.7.1-1
- * Docs: https://docs.nvidia.com/clara/parabricks/tool-reference/tools/minimap2
- * Nf-core Module: https://github.com/nf-core/modules/blob/master/modules/nf-core/parabricks/minimap2/main.nf
+ * Purpose : GPU-accelerated long-read alignment (minimap2 + KSW2 on GPU)
+ * Status  : complete scaffold
  */
 
 process PARABRICKS_MINIMAP2_ALIGN {
+    tag "$meta.id"
     label 'process_high'
     label 'process_gpu'
 
     container "nvcr.io/nvidia/clara/clara-parabricks:4.7.1-1"
-    // containerOptions { workflow.containerEngine == 'singularity' ? '--nv' : '--gpus all' }
 
     input:
-    tuple val(meta), path(reference), path(fastq)
+    tuple val(meta), path(reads)
+    tuple val(meta_fasta), path(fasta)
 
     output:
-    tuple val(meta), path("${meta.id}.bam"),    emit: bam
-    tuple val(meta), path("${meta.id}.bam.bai"), emit: bai
+    tuple val(meta), path("*.bam"), emit: bam
+    path "versions.yml"           , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
-    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    pbrun \\
-        minimap2 \\
-        --ref ${reference} \\
-        --in-fq ${fastq} \\
-        --out-bam ${meta.id}.bam \\
-        ${args}
+    pbrun minimap2 --ref ${fasta} --in-fq ${reads} --out-bam ${prefix}.bam
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        parabricks: "4.7.1-1"
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}.bam
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        parabricks: "4.7.1-1"
+    END_VERSIONS
     """
 }
