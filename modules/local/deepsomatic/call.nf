@@ -1,7 +1,10 @@
 /*
  * MODULE: DEEPSOMATIC_CALL
  * Purpose : Call small somatic variants from long-read alignments using DeepSomatic
- * Status  : complete scaffold
+ * Status  : complete implementation
+ *
+ * Container : google/deepsomatic:1.7.0
+ * Nf-core precursor: https://github.com/nf-core/modules/blob/master/modules/nf-core/deepsomatic/main.nf
  */
 
 process DEEPSOMATIC_CALL {

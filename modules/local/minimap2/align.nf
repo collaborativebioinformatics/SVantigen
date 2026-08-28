@@ -1,7 +1,14 @@
 /*
  * MODULE: MINIMAP2_ALIGN
  * Purpose : CPU long-read alignment with minimap2, coordinate-sorted BAM output
- * Status  : complete scaffold
+ * Status  : complete implementation
+ *
+ * Container : Wave / Biocontainers minimap2 + samtools
+ * Nf-core precursor (CPU): https://github.com/nf-core/modules/blob/master/modules/nf-core/minimap2/align/main.nf
+ *
+ * Notes:
+ *  - Align long reads (ONT / PacBio) to reference genome using minimap2 -ax map-ont
+ *  - Sorts alignment using samtools sort and produces indexed .bam + .bai output
  */
 
 process MINIMAP2_ALIGN {

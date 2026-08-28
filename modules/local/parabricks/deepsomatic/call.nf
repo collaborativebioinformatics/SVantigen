@@ -1,7 +1,11 @@
 /*
  * MODULE: PARABRICKS_DEEPSOMATIC_CALL
- * Purpose : GPU-accelerated somatic small variant calling
- * Status  : complete scaffold
+ * Purpose : GPU-accelerated somatic small variant calling from matched
+ *           tumor/normal long-read BAMs using NVIDIA Parabricks.
+ * Status  : implemented
+ *
+ * Container: nvcr.io/nvidia/clara/clara-parabricks:4.7.1-1
+ * Docs: https://docs.nvidia.com/clara/parabricks/tool-reference/tools/deepsomatic
  */
 
 process PARABRICKS_DEEPSOMATIC_CALL {
