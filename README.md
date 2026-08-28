@@ -53,19 +53,19 @@ samplesheet.csv  ──►  BUILD_DRIVER_PANGENOME  ──►  CALL_RECURRENT_VA
 | 3 | `CALL_RECURRENT_VARIANTS` | `vg giraffe`, `vg pack`, `vg call`, `bcftools` | Short reads |
 | 4 | `PREDICT_NEOANTIGENS` *(future work)* | Agentic LLM tool-calling | — |
 
-#### Subworkflow 1 — Build Driver Pangenome
+#### Subworkflow 1: Build Driver Pangenome
 
 A catalogue of known cancer-driver SVs (e.g. from COSMIC or a custom VCF) is normalised with `bcftools norm`, then compiled into a GFA pangenome graph with [`svaha3`](https://github.com/edawson/svaha) (`edawson/svaha:latest` Singularity image). The graph is indexed with `vg autoindex --workflow giraffe` to produce the `.gbz`, `.dist`, and `.min` index files used by downstream alignment.
 
 > **Pangenome bypass**: if pre-built index files are already available they can be supplied directly via `--pangenome_index`, skipping this subworkflow entirely.
 
-#### Subworkflow 2 — Call Personal Variants (long reads)
+#### Subworkflow 2: Call Personal Variants (long reads)
 
 Long-read BAMs from the samplesheet are converted back to FASTQ (`samtools bam2fastq`), aligned to the linear reference with `minimap2`, and the alignments are passed to:
 - **Sniffles2** — for somatic structural variant calling
 - **DeepSomatic** — for somatic small variant (SNV/indel) calling
 
-#### Subworkflow 3 — Call Recurrent Variants (short reads)
+#### Subworkflow 3: Call Recurrent Variants (short reads)
 
 Short-read BAMs are aligned to the driver pangenome with `vg giraffe`. Coverage is packed with `vg pack` and genotyped with `vg call`. Calls are filtered to somatic-only and a per-sample QC report is collected.
 
@@ -76,7 +76,7 @@ Short-read BAMs are aligned to the driver pangenome with `vg giraffe`. Coverage 
 - **`svaha3` Singularity image** — compiled from source with a fully statically linked binary (zlib embedded) to eliminate GLIBC version conflicts inside the container.
 - **Modular GPU path** — Parabricks modules are isolated in `modules/local/parabricks/` and selected at runtime via `params.enable_gpu`, keeping the CPU and GPU paths independently testable.
 
-### Future Work — Subworkflow 4: Neoantigen Prediction via Agentic LLM
+### Future Work: Subworkflow 4: Neoantigen Prediction via Agentic LLM
 
 > **Status: planned / future work**
 
