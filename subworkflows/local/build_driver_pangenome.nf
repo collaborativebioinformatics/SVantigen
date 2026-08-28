@@ -17,8 +17,7 @@ workflow BUILD_DRIVER_PANGENOME {
     ch_variants        // channel: [ val(meta), path(variants_manifest) ]
 
     main:
-    ch_versions = channel.empty()
-
+    ch_versions = Channel.empty()
     // 1. Construct Cancer SV Pangenome (GFA)
     SVAHA3_BUILD_GRAPH(
         ch_reference

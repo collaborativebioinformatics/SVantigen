@@ -42,7 +42,7 @@ workflow {
     // ------------------------------------------------------------------------
     // Parse the samplesheet into typed tumor/normal channels (issue #19)
     // ------------------------------------------------------------------------
-    ch_samplesheet = channel.fromPath(params.input)
+    ch_samplesheet = Channel.fromPath(params.input)
     INPUT_CHECK(ch_samplesheet)
 
     // ------------------------------------------------------------------------
