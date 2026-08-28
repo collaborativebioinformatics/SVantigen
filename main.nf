@@ -11,6 +11,7 @@
 // ----------------------------------------------------------------------------------------
 // Subworkflow & Module Includes
 // ----------------------------------------------------------------------------------------
+include { INPUT_CHECK             } from './subworkflows/local/input_check'
 include { BUILD_DRIVER_PANGENOME  } from './subworkflows/local/build_driver_pangenome'
 include { CALL_RECURRENT_VARIANTS } from './subworkflows/local/call_recurrent_variants'
 include { CALL_PERSONAL_VARIANTS  } from './subworkflows/local/call_personal_variants'
@@ -21,8 +22,8 @@ include { VG_AUTOINDEX            } from './modules/local/vg/autoindex'
 // ----------------------------------------------------------------------------------------
 params {
     help                   : Boolean = false
-    input                  : Path?   = null  // Driver SV VCF file or samplesheet
-    variants               : Path?   = null  // Driver variant manifest TSV
+    input                  : Path?   = null  // Samplesheet CSV or Driver SV VCF file
+    variants               : Path?   = null  // Driver variant manifest VCF / TSV
     pangenome              : Path?   = null  // Pre-built GFA pangenome file
     pangenome_index        : String? = null  // Pre-built pangenome index files (.gbz, .dist, .min)
     fasta                  : Path?   = null  // Reference genome FASTA file
@@ -49,17 +50,18 @@ workflow {
             SVantigen Pipeline - Identifying Candidate Neoantigens in SV Space
             ===================================================================
             Usage:
-              1. Build pangenome from VCF (Default):
-                 nextflow run main.nf --input driver_svs.vcf -profile test,singularity
+              1. Build pangenome from VCF & run with samplesheet (Default):
+                 nextflow run main.nf --input samplesheet.csv --variants driver_svs.vcf -profile test,singularity
 
               2. Use pre-built GFA pangenome graph:
-                 nextflow run main.nf --pangenome cancer_driver.gfa -profile test,singularity
+                 nextflow run main.nf --input samplesheet.csv --pangenome cancer_driver.gfa -profile test,singularity
 
               3. Use pre-built pangenome index files (Bypasses Subworkflow 1):
-                 nextflow run main.nf --pangenome_index "path/to/gbz,path/to/dist,path/to/min" -profile test,singularity
+                 nextflow run main.nf --input samplesheet.csv --pangenome_index "path/to/gbz,path/to/dist,path/to/min" -profile test,singularity
 
             Options:
-              --input            Path to input driver SV VCF file
+              --input            Path to samplesheet CSV or input VCF
+              --variants         Path to driver variant VCF / TSV manifest
               --pangenome        Path to pre-built GFA pangenome file
               --pangenome_index  Path or comma-separated list to pre-built index files (.gbz, .dist, .min)
               --fasta            Path to reference genome FASTA file
@@ -71,13 +73,15 @@ workflow {
     }
 
     def ref_fasta = params.fasta ?: params.reference ?: "${projectDir}/assets/test/reference.fasta"
-    def vcf_input = params.input ?: params.variants ?: "${projectDir}/assets/test/driver_svs.vcf"
+    def input_path = params.input ? params.input.toString() : null
+    def is_samplesheet = input_path && input_path.endsWith('.csv')
 
     log.info """
         ===================================================================
         SVantigen Pipeline
         ===================================================================
-        input           : ${vcf_input}
+        input           : ${params.input}
+        variants        : ${params.variants}
         pangenome       : ${params.pangenome}
         pangenome_index : ${params.pangenome_index}
         fasta           : ${ref_fasta}
@@ -92,13 +96,27 @@ workflow {
     // ------------------------------------------------------------------------
     ch_fasta = Channel.fromPath(ref_fasta, checkIfExists: true)
                 .map { file -> [ [id: file.baseName], file ] }
-    ch_reads = Channel.fromPath(params.reads ?: "${projectDir}/assets/test/tumor_short.fastq.gz", checkIfExists: true)
-                .map { file -> [ [id: file.baseName], file ] }
+
+    ch_reads = Channel.empty()
+
+    if (is_samplesheet) {
+        log.info "--> Mode: Parsing samplesheet CSV (${params.input}) via INPUT_CHECK."
+        ch_samplesheet = Channel.fromPath(params.input, checkIfExists: true)
+        INPUT_CHECK( ch_samplesheet )
+        ch_reads = INPUT_CHECK.out.short_tumor.mix(INPUT_CHECK.out.short_normal, INPUT_CHECK.out.long_tumor, INPUT_CHECK.out.long_normal)
+    } else if (params.reads) {
+        ch_reads = Channel.fromPath(params.reads, checkIfExists: true)
+                    .map { file -> [ [id: file.baseName], file ] }
+    } else {
+        ch_reads = Channel.fromPath("${projectDir}/assets/test/tumor_short.fastq.gz", checkIfExists: true)
+                    .map { file -> [ [id: file.baseName], file ] }
+    }
 
     // ------------------------------------------------------------------------
     // 1. Pangenome Graph & Index Resolution
     // ------------------------------------------------------------------------
     ch_pangenome_index = Channel.empty()
+    def vcf_driver = params.variants ?: (!is_samplesheet ? params.input : null) ?: "${projectDir}/assets/test/driver_svs.vcf"
 
     if (params.pangenome_index) {
         log.info "--> Mode: Using pre-built pangenome index (${params.pangenome_index}). Bypassing Subworkflow 1."
@@ -121,15 +139,15 @@ workflow {
                     .map { file -> [ [id: file.baseName], file ] }
         VG_AUTOINDEX( ch_gfa )
         ch_pangenome_index = VG_AUTOINDEX.out.index
-    } else if (vcf_input) {
-        log.info "--> Mode: Building pangenome graph and index from scratch using VCF (${vcf_input})."
-        ch_vcf = Channel.fromPath(vcf_input, checkIfExists: true)
+    } else if (vcf_driver) {
+        log.info "--> Mode: Building pangenome graph and index from scratch using VCF (${vcf_driver})."
+        ch_vcf = Channel.fromPath(vcf_driver, checkIfExists: true)
                     .map { file -> [ [id: file.baseName], file ] }
         
         BUILD_DRIVER_PANGENOME( ch_vcf, ch_fasta )
         ch_pangenome_index = BUILD_DRIVER_PANGENOME.out.index
     } else {
-        failParam("Please specify one of: --input (VCF), --pangenome (GFA), or --pangenome_index (.gbz,.dist,.min).")
+        failParam("Please specify one of: --input (VCF/samplesheet), --pangenome (GFA), or --pangenome_index (.gbz,.dist,.min).")
     }
 
     // ------------------------------------------------------------------------
