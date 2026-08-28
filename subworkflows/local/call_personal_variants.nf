@@ -74,6 +74,14 @@ workflow CALL_PERSONAL_VARIANTS {
 
     DEEPSOMATIC_CALL(ch_somatic_input, ch_reference)
 
-    // emit:
-    // // ch_output
+    // Step 4b: structural variant calling on the tumor alignment.
+    // No tandem-repeat annotation yet, so pass the NO_FILE placeholder.
+    ch_no_tandem = Channel.value([ [id: 'no_tandem'], file('NO_FILE') ])
+
+    SNIFFLES2_CALL(ch_aligned.tumor, ch_reference, ch_no_tandem)
+
+    emit:
+    snv_vcf = DEEPSOMATIC_CALL.out.vcf   // personal SNV/indel calls
+    sv_vcf  = SNIFFLES2_CALL.out.vcf     // personal structural variant calls
+    bam     = MINIMAP2_ALIGN.out.bam     // alignments, reused by downstream QC
 }
