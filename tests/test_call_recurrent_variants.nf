@@ -5,12 +5,12 @@ include { CALL_RECURRENT_VARIANTS } from '../subworkflows/local/call_recurrent_v
 workflow TEST_CALL_RECURRENT_VARIANTS {
 
     // 1. Mock inputs for FASTQ and BAM sample testing
-    ch_reads = Channel.of(
+    ch_reads = channel.of(
         [ [id: 'test_fastq_sample'], [ file("${projectDir}/../assets/test/tumor_short.fastq.gz", checkIfExists: true) ] ]
     )
 
     // 2. Mock Giraffe Index Channel [ meta, gbz, dist, min ]
-    ch_giraffe_index = Channel.of(
+    ch_giraffe_index = channel.of(
         [
             [id: 'driver_pangenome'],
             file("${projectDir}/../assets/test/reference.fasta", checkIfExists: true), // gbz

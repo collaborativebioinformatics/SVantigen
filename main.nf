@@ -22,38 +22,55 @@ workflow {
         SVantigen Pipeline
         ==================
         input      : ${params.input}
+        reference  : ${params.reference}
+        variants   : ${params.variants}
         outdir     : ${params.outdir}
         enable_gpu : ${params.enable_gpu}
+        run_personal_variants : ${params.run_personal_variants}
     """.stripIndent()
+
+    if (!params.input) {
+        error "Missing required param --input (tumor/normal samplesheet CSV)."
+    }
+    if (!params.reference) {
+        error "Missing required param --reference (reference FASTA)."
+    }
+    if (!params.variants) {
+        error "Missing required param --variants (driver-variant manifest TSV)."
+    }
 
     // ------------------------------------------------------------------------
     // Parse the samplesheet into typed tumor/normal channels (issue #19)
     // ------------------------------------------------------------------------
-    ch_samplesheet = channel.fromPath(params.input)
+    ch_samplesheet = Channel.fromPath(params.input)
     INPUT_CHECK(ch_samplesheet)
 
-    // Future issues will wire these channels to analysis subworkflows:
-    // ch_short_tumor  = INPUT_CHECK.out.short_tumor
-    // ch_short_normal = INPUT_CHECK.out.short_normal
-    // ch_long_tumor   = INPUT_CHECK.out.long_tumor
-    // ch_long_normal  = INPUT_CHECK.out.long_normal
-
     // ------------------------------------------------------------------------
-    // Channel initialization
+    // Canonical input channels
     // ------------------------------------------------------------------------
-    if (params.input) {
-        ch_vcf   = Channel.fromPath(params.input).map { file -> [ [id: file.baseName], file ] }
-        ch_fasta = Channel.fromPath(params.fasta ?: 'assets/test/reference.fasta').map { file -> [ [id: file.baseName], file ] }
-        ch_reads = Channel.fromPath(params.reads ?: 'assets/test/tumor_short.fastq.gz').map { file -> [ [id: file.baseName], file ] }
+    ch_reference = channel
+        .fromPath(params.reference, checkIfExists: true)
+        .map { ref -> [ [id: 'reference'], ref ] }
 
-        // 1. Build Cancer Driver Pangenome Index (GFA -> Giraffe GBZ, DIST, MIN)
-        BUILD_DRIVER_PANGENOME( ch_vcf, ch_fasta )
+    ch_reference_index = channel
+        .fromPath(params.reference_index ?: "${params.reference}.fai", checkIfExists: true)
+        .map { fai -> [ [id: 'reference'], fai ] }
 
-        // 2. Align reads to pangenome & call recurrent variants (GPU / CPU Giraffe)
-        CALL_RECURRENT_VARIANTS( ch_reads, BUILD_DRIVER_PANGENOME.out.index )
+    ch_variants = channel
+        .fromPath(params.variants, checkIfExists: true)
+        .map { manifest -> [ [id: 'driver_variants'], manifest ] }
 
-        // 3. Align reads to reference & call personal variants (DeepSomatic & Sniffles2)
-        CALL_PERSONAL_VARIANTS( ch_reads, ch_fasta )
+    ch_short_reads = INPUT_CHECK.out.short_tumor.mix(INPUT_CHECK.out.short_normal)
+
+    // 1. Build cancer driver pangenome indexes
+    BUILD_DRIVER_PANGENOME(ch_reference, ch_reference_index, ch_variants)
+
+    // 2. Run recurrent-variant branch using typed short-read channels
+    CALL_RECURRENT_VARIANTS(ch_short_reads, BUILD_DRIVER_PANGENOME.out.index)
+
+    // 3. Personal-variant branch remains disabled until issues #6 and #20 are complete
+    if (params.run_personal_variants) {
+        log.warn "run_personal_variants=true is not supported yet; CALL_PERSONAL_VARIANTS remains disabled pending issues #6 and #20."
     }
 
 }

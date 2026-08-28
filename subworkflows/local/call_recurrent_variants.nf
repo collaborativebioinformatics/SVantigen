@@ -22,24 +22,32 @@ workflow CALL_RECURRENT_VARIANTS {
     ch_giraffe_index  // channel: [ val(meta_idx), path(gbz), path(dist), path(min) ]
 
     main:
-    ch_versions = Channel.empty()
+    ch_versions = channel.empty()
 
     // 1. Separate BAM vs FASTQ input
     ch_reads
         .branch { meta, reads ->
             def read_list = reads instanceof List ? reads : [reads]
-            def is_bam = read_list[0].name.endsWith('.bam')
-            bam: is_bam
-            fastq: !is_bam
+            def is_bam = read_list[0].name.endsWith('.bam')
+
+            bam: is_bam
+
+            fastq: !is_bam
+
         }
         .set { ch_input_reads }
 
     // Convert BAM to FASTQ if required
-    def ch_bams = ch_input_reads.bam.map { meta, reads ->
-        def read_list = reads instanceof List ? reads : [reads]
-        [ meta, read_list[0] ]
-    }
-    SAMTOOLS_BAM2FASTQ ( ch_bams )
+    def ch_bams = ch_input_reads.bam.map { meta, reads ->
+
+        def read_list = reads instanceof List ? reads : [reads]
+
+        [ meta, read_list[0] ]
+
+    }
+
+    SAMTOOLS_BAM2FASTQ ( ch_bams )
+
     ch_versions = ch_versions.mix(SAMTOOLS_BAM2FASTQ.out.versions)
 
     ch_fastqs = ch_input_reads.fastq.mix(SAMTOOLS_BAM2FASTQ.out.fastq)

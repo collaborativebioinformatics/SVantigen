@@ -25,7 +25,8 @@ process PARABRICKS_DEEPSOMATIC_CALL {
     tuple val(meta), path("${meta.id}.deepsomatic.vcf.gz.tbi"), emit: tbi
 
     script:
-
+    def args = task.ext.args ?: ''
+    def normal_cmd = normal_bam ? "--in-normal-bam ${normal_bam}" : ""
     """
     pbrun \\
         deepsomatic \\
