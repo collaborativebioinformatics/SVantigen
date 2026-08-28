@@ -21,10 +21,12 @@ include { VG_AUTOINDEX            } from './modules/local/vg/autoindex'
 // ----------------------------------------------------------------------------------------
 params {
     help                   : Boolean = false
-    input                  : Path?   = null  // Driver SV VCF file (for building pangenome from scratch)
+    input                  : Path?   = null  // Driver SV VCF file or samplesheet
+    variants               : Path?   = null  // Driver variant manifest TSV
     pangenome              : Path?   = null  // Pre-built GFA pangenome file
     pangenome_index        : String? = null  // Pre-built pangenome index files (.gbz, .dist, .min)
     fasta                  : Path?   = null  // Reference genome FASTA file
+    reference              : Path?   = null  // Alias for reference genome FASTA file
     reads                  : Path?   = null  // Input short/long FASTQ/BAM reads
     outdir                 : String  = './results'
     publish_dir_mode       : String  = 'copy'
@@ -68,14 +70,17 @@ workflow {
         exit 0
     }
 
+    def ref_fasta = params.fasta ?: params.reference ?: "${projectDir}/assets/test/reference.fasta"
+    def vcf_input = params.input ?: params.variants ?: "${projectDir}/assets/test/driver_svs.vcf"
+
     log.info """
         ===================================================================
         SVantigen Pipeline
         ===================================================================
-        input           : ${params.input}
+        input           : ${vcf_input}
         pangenome       : ${params.pangenome}
         pangenome_index : ${params.pangenome_index}
-        fasta           : ${params.fasta}
+        fasta           : ${ref_fasta}
         reads           : ${params.reads}
         outdir          : ${params.outdir}
         enable_gpu      : ${params.enable_gpu}
@@ -85,7 +90,7 @@ workflow {
     // ------------------------------------------------------------------------
     // Shared Input Channels
     // ------------------------------------------------------------------------
-    ch_fasta = Channel.fromPath(params.fasta ?: "${projectDir}/assets/test/reference.fasta", checkIfExists: true)
+    ch_fasta = Channel.fromPath(ref_fasta, checkIfExists: true)
                 .map { file -> [ [id: file.baseName], file ] }
     ch_reads = Channel.fromPath(params.reads ?: "${projectDir}/assets/test/tumor_short.fastq.gz", checkIfExists: true)
                 .map { file -> [ [id: file.baseName], file ] }
@@ -116,9 +121,9 @@ workflow {
                     .map { file -> [ [id: file.baseName], file ] }
         VG_AUTOINDEX( ch_gfa )
         ch_pangenome_index = VG_AUTOINDEX.out.index
-    } else if (params.input) {
-        log.info "--> Mode: Building pangenome graph and index from scratch using VCF (${params.input})."
-        ch_vcf = Channel.fromPath(params.input, checkIfExists: true)
+    } else if (vcf_input) {
+        log.info "--> Mode: Building pangenome graph and index from scratch using VCF (${vcf_input})."
+        ch_vcf = Channel.fromPath(vcf_input, checkIfExists: true)
                     .map { file -> [ [id: file.baseName], file ] }
         
         BUILD_DRIVER_PANGENOME( ch_vcf, ch_fasta )

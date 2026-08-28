@@ -1,14 +1,20 @@
 /*
  * MODULE: SVAHA3_BUILD_GRAPH
- * Purpose : Build the cancer driver + recurrent neoantigen pangenome graph (GFA format)
- *           from normalized driver SVs relative to a linear reference
+ * Purpose : Build a pangenome variation graph (GFA) from a linear reference and
+ *           a manifest of known variants.
+ *
+ *           Variant files are declared in a single manifest TSV:
+ *               <type>\t<file>
+ *           where type ∈ {small_vcf, small_maf, sv_tsv, sv_vcf, sv_bedpe}
+ *           and <file> is a path resolvable from the work directory.
+ *           A header line is skipped.
  * Status  : complete implementation
  *
- * Container : Biocontainers vg 1.76.1
+ * Container : Biocontainers vg 1.76.1 / svaha3
  *
  * Notes:
- *  - Executes vg construct with reference FASTA and input VCF to create .vg graph
- *  - Converts .vg graph to GFA format using vg view for downstream indexing
+ *  - Executes graph construction with reference FASTA and input variants to create .vg graph
+ *  - Converts graph to GFA format for downstream indexing
  */
 
 process SVAHA3_BUILD_GRAPH {
