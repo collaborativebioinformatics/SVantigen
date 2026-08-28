@@ -1,7 +1,7 @@
 /*
  * MODULE: SVAHA3_BUILD_GRAPH
  * Purpose : Build a pangenome variation graph (GFA) from a linear reference and
- *           a manifest of known variants.
+ *           a manifest of known variants using Svaha.
  *
  *           Variant files are declared in a single manifest TSV:
  *               <type>\t<file>
@@ -10,7 +10,7 @@
  *           A header line is skipped.
  * Status  : complete implementation
  *
- * Container : Biocontainers vg 1.76.1 / svaha3
+ * Container : edawson/svaha:latest
  *
  * Notes:
  *  - Executes graph construction with reference FASTA and input variants to create .vg graph
@@ -21,7 +21,9 @@ process SVAHA3_BUILD_GRAPH {
     tag "$meta.id"
     label 'process_medium'
 
-    container "quay.io/biocontainers/vg:1.76.1--h9ee0642_0"
+    container "${ workflow.containerEngine in ['singularity', 'apptainer'] && !task.ext.singularity_pull_docker_container
+        ? 'edawson/svaha:latest'
+        : 'edawson/svaha:latest' }"
 
     input:
     tuple val(meta), path(vcf), path(tbi)

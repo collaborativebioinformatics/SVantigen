@@ -1,0 +1,42 @@
+Bootstrap: docker
+From: ubuntu:20.04
+
+%labels
+    Maintainer SVantigen Team
+    Tool svaha
+    Repository https://github.com/edawson/svaha
+    Version latest
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        g++-9 \
+        gcc-9 \
+        make \
+        git \
+        zlib1g-dev \
+        libbz2-dev \
+        liblzma-dev \
+        libcurl4-openssl-dev \
+        ca-certificates \
+        && rm -rf /var/lib/apt/lists/*
+
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100
+
+    cd /opt
+    git clone --recursive https://github.com/edawson/svaha.git
+    cd svaha
+    make -j$(nproc) || make
+    cp svaha /usr/local/bin/svaha 2>/dev/null || cp bin/svaha /usr/local/bin/svaha 2>/dev/null || true
+    chmod +x /usr/local/bin/svaha 2>/dev/null || true
+
+%environment
+    export PATH=/usr/local/bin:$PATH
+
+%test
+    svaha --help || true
+
+%runscript
+    exec svaha "$@"
