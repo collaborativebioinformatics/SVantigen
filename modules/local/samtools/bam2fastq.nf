@@ -7,7 +7,7 @@
  *
  * Notes:
  *  - Uses samtools collate and samtools fastq to stream collated reads into gzipped FASTQ
- *  - Output paired or single-end FASTQ channels
+ *  - Supports single-end long reads and paired-end short reads
  */
 
 process SAMTOOLS_BAM2FASTQ {
@@ -32,8 +32,7 @@ process SAMTOOLS_BAM2FASTQ {
     def args = task.ext.args ?: ''
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    samtools collate -u -O -@ ${task.cpus} ${bam} | \\
-    samtools fastq -1 ${prefix}_1.fastq.gz -2 ${prefix}_2.fastq.gz -0 /dev/null -s /dev/null -@ ${task.cpus} ${args} -
+    samtools fastq -@ ${task.cpus} ${args} ${bam} | gzip -c > ${prefix}.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -44,8 +43,7 @@ process SAMTOOLS_BAM2FASTQ {
     stub:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}_1.fastq.gz
-    touch ${prefix}_2.fastq.gz
+    touch ${prefix}.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

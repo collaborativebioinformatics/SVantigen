@@ -94,8 +94,10 @@ workflow {
     // ------------------------------------------------------------------------
     // Shared Input Channels & Read Type Routing
     // ------------------------------------------------------------------------
+    // Use .collect() so ch_fasta behaves as a reusable value channel across multiple sample processes
     ch_fasta = Channel.fromPath(ref_fasta, checkIfExists: true)
                 .map { file -> [ [id: file.baseName], file ] }
+                .collect()
 
     ch_short_reads = Channel.empty()
     ch_long_reads  = Channel.empty()

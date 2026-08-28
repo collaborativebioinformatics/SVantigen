@@ -87,7 +87,8 @@ workflow CALL_PERSONAL_VARIANTS {
     }
 
     // 4. Call structural variants (Sniffles2)
-    ch_tandem = Channel.of( [ [id: 'no_tandem'], file('NO_FILE') ] )
+    // Use .collect() so ch_tandem acts as a reusable value channel across all samples
+    ch_tandem = Channel.of( [ [id: 'no_tandem'], file('NO_FILE') ] ).collect()
 
     SNIFFLES2_CALL ( ch_aligned_with_bai, ch_fasta, ch_tandem )
     ch_sv_vcf   = SNIFFLES2_CALL.out.vcf
