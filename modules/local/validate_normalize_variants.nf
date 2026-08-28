@@ -2,23 +2,51 @@
  * MODULE: VALIDATE_NORMALIZE_VARIANTS
  * Purpose : Validate and normalize known driver SVs + known small somatic
  *           variants
- * Status  : placeholder - not yet implemented
- * Assigned: to be assigned
+ * Status  : complete scaffold
  */
 
 process VALIDATE_NORMALIZE_VARIANTS {
-    container // add container here
+    tag "$meta.id"
+    label 'process_low'
+
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container
+        ? 'https://depot.galaxyproject.org/singularity/bcftools:1.20--h4260373_1'
+        : 'biocontainers/bcftools:1.20--h4260373_1'}"
 
     input:
-    path driver_sv_vcf
-    path small_variant_vcf
+    tuple val(meta), path(vcf)
 
     output:
-    path "normalized_driver_svs.vcf", emit: driver_svs
-    path "normalized_small_variants.vcf", emit: small_variants
+    tuple val(meta), path("*.normalized.vcf.gz"), emit: vcf
+    path "versions.yml"                         , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    # TODO: implement validation + normalization
+    bcftools norm \\
+        -m -any \\
+        ${vcf} \\
+        ${args} \\
+        -O z -o ${prefix}.normalized.vcf.gz
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        bcftools: \$(bcftools --version 2>&1 | head -n 1 | sed 's/bcftools //')
+    END_VERSIONS
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}.normalized.vcf.gz
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        bcftools: \$(bcftools --version 2>&1 | head -n 1 | sed 's/bcftools //')
+    END_VERSIONS
     """
 }

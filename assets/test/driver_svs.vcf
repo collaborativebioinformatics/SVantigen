@@ -1,0 +1,6 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Difference in length between REF and ALT alleles">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	100	SV_1	N	<DEL>	.	PASS	SVTYPE=DEL;SVLEN=-50

@@ -1,5 +1,5 @@
-﻿pair_id,sample,status,data_type,bam
-pair_01,sample01,tumor,short,tests/data/sample01.bam
-pair_01,sample02,normal,short,tests/data/sample02.bam
-pair_02,sample03,tumor,long,tests/data/sample03.bam
-pair_02,sample04,normal,long,tests/data/sample04.bam
+pair_id,sample,status,data_type,bam
+pair_01,sample01,tumor,short,assets/test/sample01.short.bam
+pair_01,sample02,normal,short,assets/test/sample02.short.bam
+pair_02,sample03,tumor,long,assets/test/sample03.long.bam
+pair_02,sample04,normal,long,assets/test/sample04.long.bam

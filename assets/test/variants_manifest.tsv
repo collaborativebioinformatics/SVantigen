@@ -1,0 +1,3 @@
+type	file
+sv_vcf	assets/test/driver_svs.vcf
+small_vcf	assets/test/small_variants.vcf

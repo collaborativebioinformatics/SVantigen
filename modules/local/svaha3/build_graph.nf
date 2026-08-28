@@ -1,20 +1,20 @@
 /*
  * MODULE: SVAHA3_BUILD_GRAPH
  * Purpose : Build a pangenome variation graph (GFA) from a linear reference and
- *           a set of known variants, relative to a linear reference.
+ *           a manifest of known variants.
  *
  *           Variant files are declared in a single manifest TSV:
  *               <type>\t<file>
  *           where type ∈ {small_vcf, small_maf, sv_tsv, sv_vcf, sv_bedpe}
  *           and <file> is a path resolvable from the work directory.
- *           A header line (anything) is skipped.
+ *           A header line is skipped.
  *
- * Status  : implemented
- *
- * Container: build from https://github.com/edawson/svaha (see svaha/Dockerfile)
+ * Status  : implemented scaffold
  */
 
 process SVAHA3_BUILD_GRAPH {
+     tag "$meta.id"
+     label 'process_medium'
 
     // Build from https://github.com/edawson/svaha (see svaha/Dockerfile)
     container "edawson/svaha:latest"
@@ -26,6 +26,10 @@ process SVAHA3_BUILD_GRAPH {
 
     output:
     tuple val(meta), path("${meta.id}.gfa"), emit: gfa
+    path "versions.yml"                      , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
@@ -48,5 +52,19 @@ process SVAHA3_BUILD_GRAPH {
         \$svaha_args \\
         --output-graph ${meta.id}.gfa \\
         ${args}
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        svaha3: "\$(svaha3 --version 2>&1 || echo 'unknown')"
+    END_VERSIONS
+    """
+
+    stub:
+    """
+    touch ${meta.id}.gfa
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        svaha3: "0.0.1"
+    END_VERSIONS
     """
 }
