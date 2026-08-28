@@ -115,6 +115,15 @@ Everything is published under `results/`:
 | `results/personal/` | Linear reference alignments (`.bam`), DeepSomatic VCFs, and Sniffles2 SV VCFs |
 | `results/qc/` | Variant QC metrics and standalone HTML summary report |
 
+WHAT HAS BEEN COMPLETED:
+
+![Architecture Diagram](images/Slide2.png)
+![Build Pangenome](images/Slide3.png)
+![Call Recurrent Variants](images/Slide4.png)
+![Call Personal Variants](images/Slide5.png)
+![Done and To-Dos](images/Slide6.png)
+![Future Directions](images/Slide7.png)
+
 ### 4. GPU Acceleration & Parabricks Module Architecture
 
 All GPU-accelerated process modules ([NVIDIA Clara Parabricks](https://docs.nvidia.com/clara/parabricks/index.html)) are cleanly isolated under `modules/local/parabricks/`, separated from standard CPU modules in `modules/local/`:
