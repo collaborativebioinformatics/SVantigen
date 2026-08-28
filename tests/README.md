@@ -21,7 +21,7 @@ pipeline itself consumes, tests/ is for verifying pipeline behavior.
 
 | Parameter | Description |
 |---|---|
-| `input` | Path to the input `samplesheet.csv`. |
+| `input` | Path to the input VCF or `samplesheet.csv`. |
 | `reference` | Path to the reference genome FASTA file used for alignment and variant analysis. |
 | `driver_svs` | Path to a VCF containing known driver structural variants. |
 | `small_variants` | Path to a VCF containing known small variants such as SNPs and indels. |
