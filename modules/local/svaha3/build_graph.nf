@@ -60,10 +60,8 @@ process SVAHA3_BUILD_GRAPH {
     """
 
     stub:
-    def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    touch ${prefix}.gfa
-
+    touch ${meta.id}.gfa
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         svaha3: "0.0.1"
